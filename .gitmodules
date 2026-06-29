@@ -10,3 +10,6 @@
 [submodule "vendor/luau-lsp"]
 	path = vendor/luau-lsp
 	url = https://github.com/JohnnyMorganz/luau-lsp.git
+[submodule "vendor/tint"]
+	path = vendor/tint
+	url = https://github.com/omarcoaraujo/tint.git

@@ -13,3 +13,6 @@
 [submodule "vendor/tint"]
 	path = vendor/tint
 	url = https://github.com/omarcoaraujo/tint.git
+[submodule "vendor/pesde"]
+	path = vendor/pesde
+	url = https://github.com/pesde-pkg/pesde.git

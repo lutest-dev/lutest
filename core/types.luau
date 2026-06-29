@@ -3,18 +3,22 @@ export type TestSpec = {
 	fn: () -> (),
 }
 
-export type PassedTestResult = {
-	name: string,
-	passed: true,
+export type TestResultMap = {
+	passed: {
+		name: string,
+		passed: true,
+	},
+	failed: {
+		name: string,
+		passed: false,
+		error_message: string,
+	},
 }
 
-export type FailedTestResult = {
-	name: string,
-	passed: false,
-	error_message: string,
-}
-
-export type TestResult = PassedTestResult | FailedTestResult
+export type TestResultKind = keyof<TestResultMap>
+export type PassedTestResult = index<TestResultMap, "passed">
+export type FailedTestResult = index<TestResultMap, "failed">
+export type TestResult = index<TestResultMap, TestResultKind>
 
 export type TestSuite = {
 	name: string,

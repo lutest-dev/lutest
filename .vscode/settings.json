@@ -1,4 +1,10 @@
 {
   "luau-lsp.platform.type": "roblox",
-  "luau-lsp.sourcemap.enabled": false
+  "luau-lsp.sourcemap.enabled": false,
+  "luau-lsp.fflags.enableNewSolver": true,
+  "luau-lsp.fflags.override": {
+    "LuauExportValueSyntax": "True",
+    "LuauExportValueTypecheck": "True",
+    "LuauAutocompleteExport": "True"
+  }
 }

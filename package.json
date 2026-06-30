@@ -1,0 +1,33 @@
+{
+  "name": "lutest",
+  "version": "1.0.0",
+  "description": "Lutest is a test runner for Luau code, with a focus on `lute` and Roblox runtimes.",
+  "packageManager": "pnpm@11.0.9",
+  "scripts": {
+    "prepare": "husky",
+    "format": "mise exec -- stylua .",
+    "lint": "mise exec -- lute lint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cayasde/lutest.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/cayasde/lutest/issues"
+  },
+  "homepage": "https://github.com/cayasde/lutest#readme",
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8"
+  },
+  "lint-staged": {
+    "*.{luau,lua}": [
+      "mise exec -- stylua",
+      "mise exec -- lute lint"
+    ]
+  }
+}

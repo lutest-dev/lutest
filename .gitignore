@@ -1,1 +1,3 @@
 luau_packages
+node_modules
+.husky/_

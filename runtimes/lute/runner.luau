@@ -1,5 +1,6 @@
 const luau = require '@std/luau'
 const core = require '@core'
+const discovery = require '@self/discovery'
 
 export type TestSuite = core.TestSuite
 export type TestSuiteResult = core.TestSuiteResult
@@ -57,7 +58,12 @@ const function run_files(paths: { string }): { TestSuiteResult }
 	return suite_results
 end
 
+const function run_discovered(paths: { string }): { TestSuiteResult }
+	return run_files(discovery.discover_files(paths))
+end
+
 return {
 	run_file = run_file,
 	run_files = run_files,
+	run_discovered = run_discovered,
 }

@@ -8,6 +8,9 @@ type GitignoreRule = {
 	match_anywhere: boolean,
 }
 
+type GitignoreRules = { GitignoreRule }
+type SeenMap = { [string]: boolean }
+
 const GITIGNORE_PATH = '.gitignore'
 
 const IGNORE_SEGMENTS = {
@@ -59,6 +62,12 @@ const function load_gitignore_rules(cwd: string): { GitignoreRule }
 	return rules
 end
 
+const function matches_segment(filepath: string, segment: string): boolean
+	return filepath == segment
+		or filepath:find(`/{segment}/`, 1, true) ~= nil
+		or stringext.hasSuffix(filepath, `/{segment}`)
+end
+
 const function is_test_module(filepath: string): boolean
 	return stringext.hasSuffix(filepath, '.spec.luau')
 		or stringext.hasSuffix(filepath, '.test.luau')
@@ -66,13 +75,7 @@ end
 
 const function matches_native_ignore(filepath: string): boolean
 	for _, segment in IGNORE_SEGMENTS do
-		if
-			filepath == segment
-			or filepath:find(`/{segment}/`, 1, true)
-			or stringext.hasSuffix(filepath, `/{segment}`)
-		then
-			return true
-		end
+		if matches_segment(filepath, segment) then return true end
 	end
 
 	return false
@@ -95,7 +98,7 @@ end
 const function matches_gitignore(
 	filepath: string,
 	cwd: string,
-	gitignore_rules: { GitignoreRule }
+	gitignore_rules: GitignoreRules
 ): boolean
 	const relative_path = normalize_path(path.relative(cwd, filepath))
 
@@ -111,7 +114,7 @@ end
 const function should_ignore(
 	filepath: string,
 	cwd: string,
-	gitignore_rules: { GitignoreRule }
+	gitignore_rules: GitignoreRules
 ): boolean
 	if matches_native_ignore(filepath) then return true end
 
@@ -120,10 +123,10 @@ end
 
 const function add_file(
 	results: { string },
-	seen: { [string]: boolean },
+	seen: SeenMap,
 	filepath: string,
 	cwd: string,
-	gitignore_rules: { GitignoreRule }
+	gitignore_rules: GitignoreRules
 )
 	if seen[filepath] then return end
 	if should_ignore(filepath, cwd, gitignore_rules) then return end
@@ -135,36 +138,38 @@ end
 
 const function walk_directory(
 	results: { string },
-	seen: { [string]: boolean },
+	seen: SeenMap,
 	directory: string,
 	cwd: string,
-	gitignore_rules: { GitignoreRule }
+	gitignore_rules: GitignoreRules
 )
-	const iterator =
-		fs.walk(path.normalize(directory), { recursive = true })
-	local entry = iterator()
+	for _, entry in fs.listDirectory(directory) do
+		const entry_path =
+			normalize_path(path.join(directory, entry.name))
 
-	while entry do
-		if fs.type(entry) ~= 'file' then
-			entry = iterator()
+		if should_ignore(entry_path, cwd, gitignore_rules) then
 			continue
 		end
 
-		add_file(
-			results,
-			seen,
-			normalize_path(entry),
-			cwd,
-			gitignore_rules
-		)
+		if entry.type == 'dir' then
+			walk_directory(
+				results,
+				seen,
+				entry_path,
+				cwd,
+				gitignore_rules
+			)
+			continue
+		end
 
-		entry = iterator()
+		if entry.type ~= 'file' then continue end
+		add_file(results, seen, entry_path, cwd, gitignore_rules)
 	end
 end
 
 const function discover_files(paths: { string }): { string }
 	const discovered = {} :: { string }
-	const seen = {} :: { [string]: boolean }
+	const seen = {} :: SeenMap
 	const cwd = normalize_path(process.cwd())
 	const gitignore_rules = load_gitignore_rules(cwd)
 

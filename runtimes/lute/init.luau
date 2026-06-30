@@ -1,6 +1,6 @@
 const core = require '@core'
-const discovery = require '@self/discovery'
-const runner = require '@self/runner'
+const discovery = require '@runtimes/lute/discovery'
+const runner = require '@runtimes/lute/runner'
 
 export type TestSuite = core.TestSuite
 export type TestSuiteResult = core.TestSuiteResult

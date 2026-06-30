@@ -1,6 +1,6 @@
 const luau = require '@std/luau'
 const core = require '@core'
-const discovery = require '@self/discovery'
+const discovery = require '@runtimes/lute/discovery'
 
 export type TestSuite = core.TestSuite
 export type TestSuiteResult = core.TestSuiteResult

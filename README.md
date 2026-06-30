@@ -1,6 +1,6 @@
 # Lutest
 
-Lutest is a test runner for Luau code, with a focus on `luau`, `lute`, and Roblox runtimes.
+Lutest is a test runner for Luau code, with a focus on `lute` and Roblox runtimes.
 
 Key ideas:
 
@@ -28,9 +28,10 @@ The project is not intended to treat one of these as the only correct way to tes
 
 Current runtime targets:
 
-- `luau`
 - `lute`
 - Roblox runtimes
+
+Direct support for running suites on the standalone `luau` CLI is not a project goal right now. Local execution should go through the `lute` runtime.
 
 It should also be possible to run the same test suite across different Luau-oriented runtimes when that is useful.
 

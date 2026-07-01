@@ -16,3 +16,6 @@
 [submodule "vendor/pesde"]
 	path = vendor/pesde
 	url = https://github.com/pesde-pkg/pesde.git
+[submodule "vendor/darklua"]
+	path = vendor/darklua
+	url = https://github.com/seaofvoices/darklua.git

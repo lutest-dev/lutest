@@ -10,7 +10,8 @@
     "release:build": "mise exec -- lute run scripts/release.luau",
     "docs:dev": "pnpm --dir docs dev",
     "docs:build": "pnpm --dir docs build",
-    "docs:preview": "pnpm --dir docs preview"
+    "docs:preview": "pnpm --dir docs preview",
+    "docs:deploy": "pnpm docs:build && mise exec -- lute run scripts/deploy-docs.luau"
   },
   "repository": {
     "type": "git",

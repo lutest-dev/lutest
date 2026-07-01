@@ -63,6 +63,16 @@ const function create_suite(module_path: string, tests: { TestSpec }): TestSuite
 	}
 end
 
+const function has_only_tests(suites: { TestSuite }): boolean
+	for _, suite in suites do
+		for _, test in suite.tests do
+			if test.mode == 'only' then return true end
+		end
+	end
+
+	return false
+end
+
 const function run_file(module_path: string): { TestSuiteResult }
 	const resolved_module_path = resolve_module_path(module_path)
 	const _, tests = load_module(resolved_module_path)
@@ -75,12 +85,30 @@ const function run_file(module_path: string): { TestSuiteResult }
 end
 
 const function run_files(paths: { string }): { TestSuiteResult }
-	const suite_results = {} :: { TestSuiteResult }
+	const suites = {} :: { TestSuite }
+	const focus_only = false
 
 	for _, module_path in paths do
-		for _, suite_result in run_file(module_path) do
-			table.insert(suite_results, suite_result)
+		const resolved_module_path = resolve_module_path(module_path)
+		const _, tests = load_module(resolved_module_path)
+		if #tests == 0 then
+			warn_missing_tests(resolved_module_path)
+			continue
 		end
+
+		table.insert(suites, create_suite(resolved_module_path, tests))
+	end
+
+	const suite_results = {} :: { TestSuiteResult }
+	const resolved_focus_only = has_only_tests(suites)
+
+	for _, suite in suites do
+		table.insert(
+			suite_results,
+			core.run(suite, {
+				focus_only = resolved_focus_only or focus_only,
+			})
+		)
 	end
 
 	return suite_results

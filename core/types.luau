@@ -1,23 +1,46 @@
-export type TestSpec = {
+export type TestMode = 'run' | 'skip' | 'only' | 'todo'
+export type TestFn = () -> ()
+
+export type RunnableTestMode = 'run' | 'skip' | 'only'
+
+export type RunnableTestSpec = {
 	name: string,
-	fn: () -> (),
+	mode: RunnableTestMode,
+	fn: TestFn,
 }
+
+export type TodoTestSpec = {
+	name: string,
+	mode: 'todo',
+}
+
+export type TestSpec = RunnableTestSpec | TodoTestSpec
 
 export type TestResultMap = {
 	passed: {
 		name: string,
-		passed: true,
+		kind: 'passed',
 	},
 	failed: {
 		name: string,
-		passed: false,
+		kind: 'failed',
 		error_message: string,
+	},
+	skipped: {
+		name: string,
+		kind: 'skipped',
+	},
+	todo: {
+		name: string,
+		kind: 'todo',
 	},
 }
 
 export type TestResultKind = keyof<TestResultMap>
 export type PassedTestResult = index<TestResultMap, 'passed'>
 export type FailedTestResult = index<TestResultMap, 'failed'>
+export type SkippedTestResult = index<TestResultMap, 'skipped'>
+export type TodoTestResult = index<TestResultMap, 'todo'>
 export type TestResult = index<TestResultMap, TestResultKind>
 
 export type TestSuite = {
@@ -30,6 +53,8 @@ export type TestSuiteResult = {
 	total_tests: number,
 	passed_tests: number,
 	failed_tests: number,
+	skipped_tests: number,
+	todo_tests: number,
 	results: { TestResult },
 }
 

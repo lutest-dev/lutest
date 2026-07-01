@@ -11,13 +11,15 @@ const function format_suite_result(result: TestSuiteResult): string
 	const summary =
 		`suite: {tint.cyan(result.name)}\nresult: {suite_status}; {result.total_tests} tests, {tint.green(
 			`{result.passed_tests} passed`
-		)}, {tint.red(`{result.failed_tests} failed`)}`
+		)}, {tint.red(`{result.failed_tests} failed`)}, {tint.yellow(
+			`{result.skipped_tests} skipped`
+		)}, {tint.magenta(`{result.todo_tests} todo`)}`
 
 	if result.failed_tests == 0 then return summary end
 	const lines = { tint.red.bold 'failures:', '' }
 
 	for _, test_result in result.results do
-		if test_result.passed then continue end
+		if test_result.kind ~= 'failed' then continue end
 
 		const failed_test = test_result :: FailedTestResult
 		table.insert(

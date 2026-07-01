@@ -1,5 +1,5 @@
 [discovery]
-require = "@lib"
+require = "@lutest_release"
 roots = ["."]
 ignore = ["vendor", "luau_packages", ".git"]
 gitignore = true

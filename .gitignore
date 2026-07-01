@@ -4,6 +4,4 @@ node_modules
 site/
 docs/.astro/
 docs/dist/
-dist/release-bundle/
-dist/lutest
-dist/lutest.exe
+dist

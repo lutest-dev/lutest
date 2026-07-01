@@ -3,36 +3,61 @@ const types = require '@core/types'
 export type TestSpec = types.TestSpec
 export type TestMode = types.TestMode
 
-const active_tests = {} :: { TestSpec }
-local active = false
+type TestBuckets = { [string]: { TestSpec } }
 
-const function clear_active_tests()
-	while #active_tests > 0 do
-		table.remove(active_tests)
+const test_buckets = {} :: TestBuckets
+local active_module_identity = nil :: string?
+
+const function bucket_for(module_identity: string): { TestSpec }
+	local bucket = test_buckets[module_identity]
+	if bucket ~= nil then return bucket end
+
+	bucket = {}
+	test_buckets[module_identity] = bucket
+	return bucket
+end
+
+const function clear_bucket(bucket: { TestSpec })
+	while #bucket > 0 do
+		table.remove(bucket)
 	end
 end
 
-const function begin(_module_identity: string)
-	active = true
-	clear_active_tests()
+const function begin(module_identity: string)
+	active_module_identity = module_identity
+	clear_bucket(bucket_for(module_identity))
 end
 
 const function register(test: TestSpec)
-	if not active then return end
-	table.insert(active_tests, test)
+	const module_identity = active_module_identity
+	if module_identity == nil then return end
+
+	table.insert(bucket_for(module_identity), test)
 end
 
-const function collect(): { TestSpec }
-	return active_tests
+const function collect(module_identity: string): { TestSpec }
+	return bucket_for(module_identity)
 end
 
-const function clear()
-	active = false
-	clear_active_tests()
+const function clear(module_identity: string?)
+	if module_identity == nil then
+		active_module_identity = nil
+
+		for _, bucket in test_buckets do
+			clear_bucket(bucket)
+		end
+
+		return
+	end
+
+	clear_bucket(bucket_for(module_identity))
+	if active_module_identity == module_identity then
+		active_module_identity = nil
+	end
 end
 
 const function is_active(): boolean
-	return active
+	return active_module_identity ~= nil
 end
 
 return {

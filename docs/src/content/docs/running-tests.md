@@ -13,13 +13,13 @@ lutest
 If you want to run only one path, pass it directly:
 
 ```powershell
-lutest tests
+lutest src
 ```
 
 You can also pass more than one path:
 
 ```powershell
-lutest src tests
+lutest src packages
 ```
 
 That is the whole shape of the current CLI. You pass paths in, and Lutest runs the test modules it discovers there.

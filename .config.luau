@@ -14,7 +14,6 @@ return {
 			core = 'core',
 			lib = 'lib',
 			runtimes = 'runtimes',
-			tests = 'tests',
 			packages = 'luau_packages',
 			std = '~/.lute/typedefs/1.0.0/std',
 			lute = '~/.lute/typedefs/1.0.0/lute',

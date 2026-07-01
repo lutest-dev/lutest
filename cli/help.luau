@@ -12,8 +12,8 @@ const function format_help(): string
 		tint.cyan.bold 'Examples:',
 		`  {tint.green 'lutest'}`,
 		`  {tint.green 'lutest .'}`,
-		`  {tint.green 'lutest tests'}`,
-		`  {tint.green 'lutest src tests'}`,
+		`  {tint.green 'lutest src'}`,
+		`  {tint.green 'lutest src packages'}`,
 	}, '\n')
 end
 

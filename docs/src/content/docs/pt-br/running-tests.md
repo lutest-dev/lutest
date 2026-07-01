@@ -13,13 +13,13 @@ lutest
 Se você quiser rodar só um path, passe esse path:
 
 ```powershell
-lutest tests
+lutest src
 ```
 
 Você também pode passar mais de um path:
 
 ```powershell
-lutest src tests
+lutest src packages
 ```
 
 Esse é o formato inteiro da CLI atual. Você passa os paths, e o Lutest roda os módulos de teste que encontrar ali.

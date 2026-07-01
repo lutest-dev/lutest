@@ -37,7 +37,7 @@ lutest
 If you want to limit the run to specific locations, pass them explicitly:
 
 ```powershell
-lutest src tests
+lutest src
 ```
 
 At this point, the important idea is small: Lutest looks for modules that depend on the configured package path, loads them, and turns each discovered module into one implicit suite.

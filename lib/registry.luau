@@ -1,6 +1,7 @@
 const types = require '@core/types'
 
 export type TestSpec = types.TestSpec
+export type TestMode = types.TestMode
 
 type TestsByModule = { [string]: { TestSpec } }
 

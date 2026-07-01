@@ -137,7 +137,6 @@ end
 
 const function run_files(paths: { string }): { TestSuiteResult }
 	const suites = {} :: { TestSuite }
-	const focus_only = false
 
 	for _, module_path in paths do
 		const resolved_module_path =
@@ -158,7 +157,7 @@ const function run_files(paths: { string }): { TestSuiteResult }
 		table.insert(
 			suite_results,
 			core.run(suite, {
-				focus_only = resolved_focus_only or focus_only,
+				focus_only = resolved_focus_only,
 			})
 		)
 	end

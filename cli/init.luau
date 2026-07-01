@@ -37,14 +37,11 @@ const function main()
 		process.exit(0)
 	end
 
-	const discovered = lute.discover_files(args)
-
-	if #discovered == 0 then
+	const results = lute.run_discovered(args)
+	if #results == 0 then
 		print 'no test modules found'
 		process.exit(1)
 	end
-
-	const results = lute.run_files(discovered)
 
 	for _, suite_result in results do
 		reporter.print_suite_result(suite_result)

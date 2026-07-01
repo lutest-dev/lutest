@@ -1,0 +1,5 @@
+[discovery]
+require = "@lib"
+roots = ["."]
+ignore = ["vendor", "luau_packages", ".git"]
+gitignore = true

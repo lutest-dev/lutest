@@ -49,6 +49,25 @@ Install the pinned tools with:
 mise install
 ```
 
+## Configuration
+
+Lutest can read a `lutest.toml` file from the project root.
+
+Currently supported keys:
+
+```toml
+[discovery]
+require = "@lib"
+roots = ["."]
+ignore = ["vendor", "luau_packages", ".git"]
+gitignore = true
+```
+
+- `require`: module path used to identify test-bearing modules during discovery
+- `roots`: directories or files used when the CLI runs without explicit paths
+- `ignore`: additional paths pruned during discovery
+- `gitignore`: whether discovery should also respect `.gitignore`
+
 ## License
 
 Lutest is distributed under the terms of the [MIT License](LICENSE).

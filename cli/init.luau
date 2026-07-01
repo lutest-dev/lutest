@@ -14,8 +14,6 @@ const function collect_cli_args(): { string }
 end
 
 const function wants_help(args: { string }): boolean
-	if #args == 0 then return true end
-
 	for _, arg in args do
 		if arg == '-h' or arg == '--help' then return true end
 	end

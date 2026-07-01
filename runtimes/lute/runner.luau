@@ -1,56 +1,84 @@
-const luau = require '@std/luau'
 const core = require '@core'
 const discovery = require '@runtimes/lute/discovery'
+const luau = require '@std/luau'
+const path = require '@std/path'
+const process = require '@std/process'
+const registry = require '@lib/registry'
 
+export type TestSpec = core.TestSpec
 export type TestSuite = core.TestSuite
 export type TestSuiteResult = core.TestSuiteResult
 
-const function is_test_suite(value: unknown): boolean
-	if typeof(value) ~= 'table' then return false end
-	const candidate = value :: { name: unknown, tests: unknown }
-
-	if typeof(candidate.name) ~= 'string' then return false end
-	return typeof(candidate.tests) == 'table'
+const function normalize_path(value: path.Pathlike): string
+	const formatted = path.format(path.normalize(value))
+	return (formatted:gsub('\\', '/'))
 end
 
-const function load_suites(path: string): { TestSuite }
-	const loaded = luau.loadModule(path)
-	if is_test_suite(loaded) then return { loaded :: TestSuite } end
+const function resolve_module_path(module_path: string): string
+	const cwd = normalize_path(process.cwd())
+	const resolved = if path.isAbsolute(module_path)
+		then module_path
+		else path.join(cwd, module_path)
 
-	assert(
-		typeof(loaded) == 'table',
-		`expected '{path}' to return a test suite or array of test suites`
+	return normalize_path(resolved)
+end
+
+const function suite_name_from_module_path(module_path: string): string
+	const cwd = normalize_path(process.cwd())
+	return normalize_path(path.relative(cwd, module_path))
+end
+
+const function format_load_error(module_path: string, err: unknown): string
+	const message = `failed to load '{module_path}': {tostring(err)}`
+	return debug.traceback(message, 2)
+end
+
+const function load_module(module_path: string): (unknown, { TestSpec })
+	registry.begin()
+
+	const ok, result = xpcall(function()
+		return luau.loadModule(module_path)
+	end, function(err)
+		return format_load_error(module_path, err)
+	end)
+
+	const tests = registry.collect(module_path)
+	registry.clear()
+
+	if not ok then error(result, 0) end
+
+	return result, tests
+end
+
+const function warn_missing_tests(module_path: string)
+	warn(
+		`warning: module '{suite_name_from_module_path(module_path)}' depends on @lib but registered no tests`
 	)
-
-	const suites = {} :: { TestSuite }
-
-	for index, suite in loaded do
-		assert(
-			is_test_suite(suite),
-			`expected suite #{index} from '{path}' to match the TestSuite contract`
-		)
-
-		table.insert(suites, suite :: TestSuite)
-	end
-
-	return suites
 end
 
-const function run_file(path: string): { TestSuiteResult }
-	const suite_results = {} :: { TestSuiteResult }
+const function create_suite(module_path: string, tests: { TestSpec }): TestSuite
+	return {
+		name = suite_name_from_module_path(module_path),
+		tests = tests,
+	}
+end
 
-	for _, suite in load_suites(path) do
-		table.insert(suite_results, core.run(suite))
+const function run_file(module_path: string): { TestSuiteResult }
+	const resolved_module_path = resolve_module_path(module_path)
+	const _, tests = load_module(resolved_module_path)
+	if #tests == 0 then
+		warn_missing_tests(resolved_module_path)
+		return {}
 	end
 
-	return suite_results
+	return { core.run(create_suite(resolved_module_path, tests)) }
 end
 
 const function run_files(paths: { string }): { TestSuiteResult }
 	const suite_results = {} :: { TestSuiteResult }
 
-	for _, path in paths do
-		for _, suite_result in run_file(path) do
+	for _, module_path in paths do
+		for _, suite_result in run_file(module_path) do
 			table.insert(suite_results, suite_result)
 		end
 	end

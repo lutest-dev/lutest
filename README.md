@@ -49,6 +49,34 @@ Install the pinned tools with:
 mise install
 ```
 
+Install the JavaScript dependencies with:
+
+```powershell
+pnpm install
+```
+
+## Docs
+
+The docs site lives in `docs/` and uses Astro Starlight.
+
+Start the docs site locally with:
+
+```powershell
+pnpm docs:dev
+```
+
+Build the static site with:
+
+```powershell
+pnpm docs:build
+```
+
+Preview the production build with:
+
+```powershell
+pnpm docs:preview
+```
+
 ## Configuration
 
 Lutest can read a `lutest.toml` file from the project root.

@@ -6,7 +6,10 @@
   "scripts": {
     "prepare": "husky",
     "format": "mise exec -- stylua .",
-    "lint": "mise exec -- lute lint ."
+    "lint": "mise exec -- lute lint .",
+    "docs:dev": "pnpm --dir docs dev",
+    "docs:build": "pnpm --dir docs build",
+    "docs:preview": "pnpm --dir docs preview"
   },
   "repository": {
     "type": "git",

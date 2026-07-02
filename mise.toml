@@ -4,6 +4,6 @@
 "github:JohnnyMorganz/luau-lsp" = "1.68.1"
 "github:pesde-pkg/pesde" = "0.7.3+registry.0.2.3"
 "github:JohnnyMorganz/StyLua" = "2.5.2"
-"github:cayasde/lutest" = "0.1.2"
+"github:cayasde/lutest" = "0.1.3"
 node = "24.15.0"
 "npm:pnpm" = "11.0.9"

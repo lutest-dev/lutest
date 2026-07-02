@@ -1,6 +1,6 @@
 {
   "name": "lutest",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Lutest is a test runner for Luau code, with a focus on `lute` and Roblox runtimes.",
   "packageManager": "pnpm@11.0.9",
   "scripts": {

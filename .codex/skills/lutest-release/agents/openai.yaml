@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lutest Release"
+  short_description: "Build and publish Lutest releases safely"
+  default_prompt: "Use $lutest-release to publish a new Lutest version safely: bump files, build the asset, smoke-test it, and only then tag and upload the GitHub release."

@@ -48,18 +48,11 @@ const function execute_module(
 		table.insert(tests, test)
 	end
 	env.require = function(require_path: string)
-		const resolved_ok, resolved_result = pcall(function()
-			return path_utils.normalize_path(
-				path.format(
-					luau.resolveModule(require_path, module_path)
-				)
+		const resolved_path = path_utils.normalize_path(
+			path.format(
+				luau.resolveModule(require_path, module_path)
 			)
-		end)
-		if not resolved_ok then
-			return (require)(require_path)
-		end
-
-		const resolved_path = resolved_result :: string
+		)
 		if not is_project_module(resolved_path, project_root) then
 			return (require)(require_path)
 		end

@@ -8,8 +8,6 @@
     "format": "mise exec -- stylua .",
     "lint": "mise exec -- lute lint .",
     "release:build": "mise exec -- lute run scripts/release.luau",
-    "release:publish": "mise exec -- lute run scripts/publish-release.luau",
-    "release:upload-asset": "mise exec -- lute run scripts/upload-release-asset.luau",
     "docs:dev": "pnpm --dir docs dev",
     "docs:build": "pnpm --dir docs build",
     "docs:preview": "pnpm --dir docs preview",

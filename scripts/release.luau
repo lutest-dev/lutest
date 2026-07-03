@@ -5,12 +5,25 @@ const path_utils = require '@lutest/utils/path'
 const system = require '@std/system'
 
 const DEFAULT_ENTRY = 'cli/init.luau'
-const DEFAULT_BUNDLE_OUTPUT = 'dist/release-bundle/main.luau'
+const DEFAULT_BUNDLE_OUTPUT = '.tmp/release-bundle/main.luau'
 const DEFAULT_BINARY_OUTPUT = if system.win32
 	then 'dist/lutest.exe'
 	else 'dist/lutest'
 const DEFAULT_CONFIG = 'darklua-bundle.json5'
 const DEFAULT_DARKLUA_COMMAND = 'darklua'
+
+const function tool_path(cwd: string, absolute_path: string): string
+	const normalized_cwd = path_utils.normalize_path(cwd)
+	const normalized_path = path_utils.normalize_path(absolute_path)
+	const relative_path = path_utils.normalize_path(
+		path.relative(normalized_cwd, normalized_path)
+	)
+
+	if relative_path == '' then return '.' end
+	if string.sub(relative_path, 1, 2) == '..' then return normalized_path end
+
+	return relative_path
+end
 
 const function resolve_darklua_command(): string
 	const from_env = process.env.DARKLUA_BIN
@@ -55,10 +68,10 @@ const function bundle_entry(
 	const result = process.run({
 		darklua_command,
 		'process',
-		entry_path,
-		bundle_path,
+		tool_path(cwd, entry_path),
+		tool_path(cwd, bundle_path),
 		'--config',
-		config_path,
+		tool_path(cwd, config_path),
 	}, {
 		cwd = cwd,
 		stdio = 'inherit',
@@ -86,9 +99,9 @@ const function compile_bundle(
 	const result = process.run({
 		'lute',
 		'compile',
-		bundle_path,
+		tool_path(cwd, bundle_path),
 		'--output',
-		binary_path,
+		tool_path(cwd, binary_path),
 	}, {
 		cwd = cwd,
 		stdio = 'inherit',

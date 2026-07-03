@@ -4,7 +4,7 @@ const path_utils = require '@lutest/utils/path'
 const system = require '@std/system'
 
 const DEFAULT_ENTRY = 'cli/init.luau'
-const DEFAULT_BUNDLE_OUTPUT = 'dist/release-bundle/main.luau'
+const DEFAULT_BUNDLE_OUTPUT = '.tmp/release-bundle/main.luau'
 const DEFAULT_REMOTE = 'origin'
 const DEFAULT_SMOKE_TEST = 'core/runner.luau'
 

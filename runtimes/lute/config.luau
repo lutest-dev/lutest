@@ -2,6 +2,7 @@ const fs = require '@std/fs'
 const path_utils = require '@lutest/utils/path'
 const path = require '@std/path'
 const stringext = require '@std/stringext'
+const t = require '@lutest_release'
 
 export type LutestConfig = {
 	roots: { string },
@@ -95,8 +96,6 @@ const function assign_discovery_scalar(
 	if key == 'roots' or key == 'ignore' then
 		error(`lutest.toml key '{key}' must be an array`)
 	end
-
-	print(`warning: ignoring unsupported lutest.toml key '{key}'`)
 end
 
 const function assign_discovery_array(
@@ -121,8 +120,6 @@ const function assign_discovery_array(
 	if key == 'gitignore' then
 		error(`lutest.toml key '{key}' must be a boolean`)
 	end
-
-	print(`warning: ignoring unsupported lutest.toml key '{key}'`)
 end
 
 const function parse_section_name(line: string): string?
@@ -195,13 +192,16 @@ const function parse_config(contents: string): LutestConfig
 		const line = stringext.trim(strip_comment(raw_line))
 		if line == '' then continue end
 
-		pending_key, pending_array, _ = continue_pending_array(
+		local continued = false
+		pending_key, pending_array, continued = continue_pending_array(
 			config,
 			current_section,
 			pending_key,
 			pending_array,
 			line
 		)
+		if continued then continue end
+
 		if pending_key == nil and pending_array == '' then
 			const section_name = parse_section_name(line)
 			if section_name ~= nil then
@@ -210,12 +210,7 @@ const function parse_config(contents: string): LutestConfig
 			end
 
 			const key, value = parse_assignment(line)
-			if key == nil or value == nil then
-				print(
-					`warning: ignoring unsupported lutest.toml line '{line}'`
-				)
-				continue
-			end
+			if key == nil or value == nil then continue end
 
 			if current_section ~= DISCOVERY_SECTION then
 				continue
@@ -263,6 +258,391 @@ const function load_config(cwd: string?): LutestConfig
 
 	return config :: LutestConfig
 end
+
+t.test('should use default config without lutest.toml', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd = path_utils.resolve_path(temp_root, 'config-missing')
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+
+	const config = load_config(temp_cwd)
+
+	assert(#config.roots == 1)
+	assert(config.roots[1] == '.')
+	assert(#config.ignore == 0)
+	assert(config.require == '@lib')
+	assert(config.gitignore == true)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should read valid discovery config', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd = path_utils.resolve_path(temp_root, 'config-valid')
+	const config_path = path.join(temp_cwd, CONFIG_PATH)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery]
+require = "@lutest_release"
+roots = ["src", "tests"]
+ignore = ["vendor", ".git"]
+gitignore = false
+]]
+	)
+
+	const config = load_config(temp_cwd)
+
+	assert(config.require == '@lutest_release')
+	assert(config.gitignore == false)
+	assert(#config.roots == 2)
+	assert(config.roots[1] == 'src')
+	assert(config.roots[2] == 'tests')
+	assert(#config.ignore == 2)
+	assert(config.ignore[1] == 'vendor')
+	assert(config.ignore[2] == '.git')
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should accept inline and multiline arrays', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd = path_utils.resolve_path(temp_root, 'config-arrays')
+	const config_path = path.join(temp_cwd, CONFIG_PATH)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery]
+roots = ["src", "tests"]
+ignore = [
+	"vendor",
+	".git",
+]
+]]
+	)
+
+	const config = load_config(temp_cwd)
+
+	assert(#config.roots == 2)
+	assert(config.roots[1] == 'src')
+	assert(config.roots[2] == 'tests')
+	assert(#config.ignore == 2)
+	assert(config.ignore[1] == 'vendor')
+	assert(config.ignore[2] == '.git')
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should ignore assignments outside [discovery]', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd = path_utils.resolve_path(temp_root, 'config-sections')
+	const config_path = path.join(temp_cwd, CONFIG_PATH)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		config_path,
+		[[
+[tool]
+require = "@ignored"
+roots = ["ignored"]
+ignore = ["ignored"]
+gitignore = false
+
+[discovery]
+require = "@lutest_release"
+roots = ["src"]
+
+[other]
+require = "@ignored-again"
+roots = ["ignored-again"]
+ignore = ["ignored-again"]
+gitignore = false
+]]
+	)
+
+	const config = load_config(temp_cwd)
+
+	assert(config.require == '@lutest_release')
+	assert(#config.roots == 1)
+	assert(config.roots[1] == 'src')
+	assert(#config.ignore == 0)
+	assert(config.gitignore == true)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should ignore unsupported discovery keys', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'config-unsupported')
+	const config_path = path.join(temp_cwd, CONFIG_PATH)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery]
+require = "@lutest_release"
+roots = ["src"]
+ignore = ["vendor"]
+gitignore = false
+reporter = "spec"
+watch = true
+]]
+	)
+
+	const config = load_config(temp_cwd)
+
+	assert(config.require == '@lutest_release')
+	assert(#config.roots == 1)
+	assert(config.roots[1] == 'src')
+	assert(#config.ignore == 1)
+	assert(config.ignore[1] == 'vendor')
+	assert(config.gitignore == false)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should reject non-string require', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'config-require-invalid')
+	const config_path = path.join(temp_cwd, CONFIG_PATH)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery]
+require = true
+]]
+	)
+
+	local message = nil :: string?
+	const ok = xpcall(function()
+		load_config(temp_cwd)
+	end, function(err)
+		message = tostring(err)
+		return message
+	end)
+
+	assert(ok == false)
+	assert(message ~= nil)
+	assert(message:find('failed to parse \'', 1, true) ~= nil)
+	assert(message:find('invalid string value \'true\'', 1, true) ~= nil)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should reject non-array roots and ignore', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'config-arrays-invalid')
+	const config_path = path.join(temp_cwd, CONFIG_PATH)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery]
+roots = "src"
+]]
+	)
+
+	local roots_message = nil :: string?
+	const roots_ok = xpcall(function()
+		load_config(temp_cwd)
+	end, function(err)
+		roots_message = tostring(err)
+		return roots_message
+	end)
+
+	assert(roots_ok == false)
+	assert(roots_message ~= nil)
+	assert(roots_message:find('failed to parse \'', 1, true) ~= nil)
+	assert(
+		roots_message:find(
+			'lutest.toml key \'roots\' must be an array',
+			1,
+			true
+		) ~= nil
+	)
+
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery]
+ignore = false
+]]
+	)
+
+	local ignore_message = nil :: string?
+	const ignore_ok = xpcall(function()
+		load_config(temp_cwd)
+	end, function(err)
+		ignore_message = tostring(err)
+		return ignore_message
+	end)
+
+	assert(ignore_ok == false)
+	assert(ignore_message ~= nil)
+	assert(ignore_message:find('failed to parse \'', 1, true) ~= nil)
+	assert(
+		ignore_message:find(
+			'lutest.toml key \'ignore\' must be an array',
+			1,
+			true
+		) ~= nil
+	)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should reject non-boolean gitignore', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'config-gitignore-invalid')
+	const config_path = path.join(temp_cwd, CONFIG_PATH)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery]
+gitignore = "yes"
+]]
+	)
+
+	local message = nil :: string?
+	const ok = xpcall(function()
+		load_config(temp_cwd)
+	end, function(err)
+		message = tostring(err)
+		return message
+	end)
+
+	assert(ok == false)
+	assert(message ~= nil)
+	assert(message:find('failed to parse \'', 1, true) ~= nil)
+	assert(message:find('invalid boolean value \'"yes"\'', 1, true) ~= nil)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should fail on unterminated discovery array', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'config-array-unterminated')
+	const config_path = path.join(temp_cwd, CONFIG_PATH)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery]
+roots = [
+	"src",
+	"tests"
+]]
+	)
+
+	local message = nil :: string?
+	const ok = xpcall(function()
+		load_config(temp_cwd)
+	end, function(err)
+		message = tostring(err)
+		return message
+	end)
+
+	assert(ok == false)
+	assert(message ~= nil)
+	assert(message:find('failed to parse \'', 1, true) ~= nil)
+	assert(message:find('lutest.toml key \'roots\'', 1, true) ~= nil)
+	assert(message:find('unterminated array', 1, true) ~= nil)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should keep defaults for omitted discovery keys', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'config-omitted-defaults')
+	const config_path = path.join(temp_cwd, CONFIG_PATH)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery]
+roots = ["src"]
+]]
+	)
+
+	const config = load_config(temp_cwd)
+
+	assert(#config.roots == 1)
+	assert(config.roots[1] == 'src')
+	assert(#config.ignore == 0)
+	assert(config.require == '@lib')
+	assert(config.gitignore == true)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
 
 return {
 	load_config = load_config,

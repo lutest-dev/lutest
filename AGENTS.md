@@ -12,6 +12,8 @@ Prefer low-nesting code. Flatten control flow aggressively with early returns, s
 
 Never delete tests. If deleting or replacing a test appears advisable, stop and tell the user first instead of removing it unilaterally.
 
+Treat Lutest as self-hosted through the stable release locked by the local toolchain: the Lutest CLI installed via `mise` and the Lutest package installed via `loom`. Do not assume the current source tree must literally execute itself as its own stable runner, and do not classify odd behavior in `lute run cli/init.luau .` as a product bug by default when it comes from mixing the current source tree with that locked release-host model.
+
 Do not introduce metatables unless the user explicitly asks for them or they are genuinely necessary and the user has approved that specific use first.
 
 Do not make project scripts depend on the internal checkout layout of `vendor` or on uninitialized submodules unless the script is explicitly maintainer-only and that constraint is documented in the script and user-facing docs.

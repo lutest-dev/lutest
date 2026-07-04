@@ -30,8 +30,7 @@ E uma execução desse módulo pode parecer assim:
 ```text
 $ lutest .
 
-suite: src/sum.luau
-result: (OK); 1 tests, 1 passed, 0 failed, 0 skipped, 0 todo
+OK  1 total  1 pass  0 fail  0 skip  0 todo
 ```
 
 Quando você roda o Lutest, esse módulo é descoberto, carregado e tratado como uma suite.

@@ -43,9 +43,7 @@ const function main()
 		process.exit(1)
 	end
 
-	for _, suite_result in results do
-		reporter.print_suite_result(suite_result)
-	end
+	reporter.print_run_result(results)
 
 	process.exit(if has_failures(results) then 1 else 0)
 end

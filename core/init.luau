@@ -17,7 +17,8 @@ export type TestSuiteResult = types.TestSuiteResult
 export type TestRunner = types.TestRunner
 
 return {
+	collect_run_result = reporter.collect_run_result,
+	format_run_result = reporter.format_run_result,
 	run = runner.run,
-	format_suite_result = reporter.format_suite_result,
-	print_suite_result = reporter.print_suite_result,
+	print_run_result = reporter.print_run_result,
 }

@@ -1,21 +1,21 @@
-Avoid editing `vendor` directly.
+Treat `vendor` as read-only. Do not edit it during normal project work.
 
-That directory should be treated as read-only for normal project work and exists mainly for reference, study, and source inspection.
+Use `vendor/luau-lsp/src/Plugin/README.md` only as a tooling and editor-workflow reference, especially for source transformation and future co-located test authoring ideas. Do not treat the Luau LSP plugin system as core `lutest` architecture.
 
-Keep an eye on `vendor/luau-lsp/src/Plugin/README.md` as a reference for source transformation, plugin-based workflows, and future co-located test authoring support.
+Do not add `--!strict` headers unless a file genuinely needs an explicit override; the project manifest already enforces strict mode.
 
-Treat the Luau LSP plugin system as a tooling and editor-workflow reference, not as the core architecture of `lutest`.
+Prefer low-nesting code. Flatten control flow with early returns, small helpers, and extracted fixtures when behavior stays clear. Avoid deep conditionals, loops, and nested test setup unless they pay for themselves.
 
-Do not add `--!strict` headers to project Luau files unless a specific file genuinely needs an explicit override; the project manifest already enforces strict mode.
+Never delete tests. If deleting or replacing a test seems advisable, stop and tell the user first.
 
-Prefer low-nesting code. Flatten control flow aggressively with early returns, small helpers, and extracted fixtures when that keeps behavior unchanged. Avoid deeply nested conditionals, loops, and test fixtures unless there is a clear payoff.
+Treat Lutest as self-hosted through the stable release locked by the local toolchain: the CLI installed via `mise` and the package installed via `loom`. The current source tree does not need to behave as its own stable runner.
 
-Never delete tests. If deleting or replacing a test appears advisable, stop and tell the user first instead of removing it unilaterally.
+Prioritize `lutest .` over `lute run cli/init.luau .` when judging whether a change is acceptable. Do not classify odd behavior in `lute run cli/init.luau .` as a product bug by default, and do not change architecture, bootstrap flow, or runner responsibilities just to make that path behave like a first-class supported flow unless the user explicitly asks for it.
 
-Treat Lutest as self-hosted through the stable release locked by the local toolchain: the Lutest CLI installed via `mise` and the Lutest package installed via `loom`. Do not assume the current source tree must literally execute itself as its own stable runner, and do not classify odd behavior in `lute run cli/init.luau .` as a product bug by default when it comes from mixing the current source tree with that locked release-host model.
+Do not hardcode source-tree modules, bootstrap helpers, or special-case source paths into the stable runner to accommodate current-source execution. If that seems necessary, stop and ask first.
 
-Do not introduce metatables unless the user explicitly asks for them or they are genuinely necessary and the user has approved that specific use first.
+Do not introduce metatables unless the user explicitly asks for them or has approved that specific use first.
 
-Do not make project scripts depend on the internal checkout layout of `vendor` or on uninitialized submodules unless the script is explicitly maintainer-only and that constraint is documented in the script and user-facing docs.
+Do not make project scripts depend on `vendor` checkout layout or uninitialized submodules unless the script is explicitly maintainer-only and that constraint is documented in the script and user-facing docs.
 
-Prefer external tools to be resolved from the environment, explicit arguments, or dedicated env vars over hardcoded paths inside `vendor`.
+Prefer external tools resolved from the environment, explicit arguments, or dedicated env vars over hardcoded paths inside `vendor`.

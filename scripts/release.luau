@@ -1,7 +1,6 @@
 const fs = require '@std/fs'
 const process = require '@std/process'
 const path = require '@std/path'
-const path_utils = require '@lutest/utils/path'
 const system = require '@std/system'
 const luau = require '@std/luau'
 const printer = require '@std/syntax/printer'
@@ -32,10 +31,34 @@ const STAGING_SKIP_SEGMENTS = {
 	'vendor',
 }
 
+const function normalize_path(value: path.Pathlike): string
+	const formatted = path.format(path.normalize(value))
+	return formatted:gsub('\\', '/')
+end
+
+const function current_working_directory(): string
+	return normalize_path(process.cwd())
+end
+
+const function resolve_path(base: string, value: string): string
+	if path.isAbsolute(value) then return normalize_path(value) end
+
+	return normalize_path(path.join(base, value))
+end
+
+const function ensure_directory(directory: string)
+	if directory == '' or directory == '.' then return end
+	if fs.exists(directory) then return end
+
+	fs.createDirectory(directory, {
+		makeParents = true,
+	})
+end
+
 const function tool_path(cwd: string, absolute_path: string): string
-	const normalized_cwd = path_utils.normalize_path(cwd)
-	const normalized_path = path_utils.normalize_path(absolute_path)
-	const relative_path = path_utils.normalize_path(
+	const normalized_cwd = normalize_path(cwd)
+	const normalized_path = normalize_path(absolute_path)
+	const relative_path = normalize_path(
 		path.relative(normalized_cwd, normalized_path)
 	)
 
@@ -56,7 +79,7 @@ const function resolve_darklua_command(): string
 end
 
 const function load_project_aliases(cwd: string): { [string]: unknown }
-	const config_path = path_utils.resolve_path(cwd, '.config.luau')
+	const config_path = resolve_path(cwd, '.config.luau')
 	const source = fs.readFileToString(config_path)
 	const chunk = luau.load(luau.compile(source), config_path, {})
 	const result = chunk()
@@ -71,7 +94,7 @@ end
 
 const function path_within_root(root: string, absolute_path: string): string?
 	const relative_path =
-		path_utils.normalize_path(path.relative(root, absolute_path))
+		normalize_path(path.relative(root, absolute_path))
 	if relative_path == '' then return '.' end
 	if string.sub(relative_path, 1, 2) == '..' then return nil end
 
@@ -87,7 +110,7 @@ const function stage_path(
 	if relative_path == nil then return absolute_path end
 	if relative_path == '.' then return staging_root end
 
-	return path_utils.resolve_path(staging_root, relative_path)
+	return resolve_path(staging_root, relative_path)
 end
 
 const function should_skip_staging_entry(name: string): boolean
@@ -111,7 +134,7 @@ const function remove_path(target_path: string)
 end
 
 const function copy_directory_recursive(source_dir: string, dest_dir: string)
-	path_utils.ensure_directory(dest_dir)
+	ensure_directory(dest_dir)
 
 	for _, entry in fs.listDirectory(source_dir) do
 		if should_skip_staging_entry(entry.name) then continue end
@@ -125,7 +148,7 @@ const function copy_directory_recursive(source_dir: string, dest_dir: string)
 		end
 
 		if entry.type ~= 'file' then continue end
-		path_utils.ensure_directory(path.dirname(dest_path))
+		ensure_directory(path.dirname(dest_path))
 		fs.copy(source_path, dest_path)
 	end
 end
@@ -283,7 +306,7 @@ end
 
 const function create_release_staging(project_root: string): string
 	const staging_root =
-		path_utils.resolve_path(project_root, RELEASE_STAGING_ROOT)
+		resolve_path(project_root, RELEASE_STAGING_ROOT)
 	remove_path(staging_root)
 	copy_directory_recursive(project_root, staging_root)
 	strip_release_self_tests_in_tree(staging_root)
@@ -323,10 +346,10 @@ const function create_darklua_config(cwd: string, config_path: string): string
 		to_darklua_alias(lutest_release_alias)
 	)
 	const generated_config_path =
-		path_utils.resolve_path(cwd, GENERATED_CONFIG)
+		resolve_path(cwd, GENERATED_CONFIG)
 
-	path_utils.ensure_directory(
-		path_utils.normalize_path(path.dirname(generated_config_path))
+	ensure_directory(
+		normalize_path(path.dirname(generated_config_path))
 	)
 	fs.writeStringToFile(generated_config_path, generated_source)
 
@@ -355,8 +378,8 @@ const function bundle_entry(
 		error(`missing entry module '{entry_path}'`, 0)
 	end
 
-	path_utils.ensure_directory(
-		path_utils.normalize_path(path.dirname(bundle_path))
+	ensure_directory(
+		normalize_path(path.dirname(bundle_path))
 	)
 
 	const darklua_command = resolve_darklua_command()
@@ -388,8 +411,8 @@ const function compile_bundle(
 		error(`missing bundled entry '{bundle_path}'`, 0)
 	end
 
-	path_utils.ensure_directory(
-		path_utils.normalize_path(path.dirname(binary_path))
+	ensure_directory(
+		normalize_path(path.dirname(binary_path))
 	)
 
 	if fs.exists(binary_path) then fs.remove(binary_path) end
@@ -410,14 +433,14 @@ const function compile_bundle(
 	return 0
 end
 
-const cwd = path_utils.normalize_path(process.cwd())
+const cwd = current_working_directory()
 const entry_path =
-	path_utils.resolve_path(cwd, process.args[2] or DEFAULT_ENTRY)
+	resolve_path(cwd, process.args[2] or DEFAULT_ENTRY)
 const bundle_path =
-	path_utils.resolve_path(cwd, process.args[3] or DEFAULT_BUNDLE_OUTPUT)
+	resolve_path(cwd, process.args[3] or DEFAULT_BUNDLE_OUTPUT)
 const binary_path =
-	path_utils.resolve_path(cwd, process.args[4] or DEFAULT_BINARY_OUTPUT)
-const config_path = path_utils.resolve_path(cwd, DEFAULT_CONFIG)
+	resolve_path(cwd, process.args[4] or DEFAULT_BINARY_OUTPUT)
+const config_path = resolve_path(cwd, DEFAULT_CONFIG)
 const staging_root = create_release_staging(cwd)
 const staged_entry_path = stage_path(cwd, staging_root, entry_path)
 const staged_config_path = stage_path(cwd, staging_root, config_path)

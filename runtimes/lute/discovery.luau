@@ -1,6 +1,7 @@
 const config = require '@runtimes/lute/config'
 const errors = require '@core/errors'
 const path_utils = require '@lutest/utils/path'
+const suggest = require '@lutest/utils/suggest'
 const t = require '@lutest_release'
 const fs = require '@std/fs'
 const path = require '@std/path'
@@ -285,6 +286,40 @@ const function resolve_input_path(input_path: string, cwd: string): string
 	return path_utils.normalize_path(path.join(cwd, input_path))
 end
 
+const function format_suggested_path(
+	input_path: string,
+	suggested_name: string
+): string
+	const normalized_input = path_utils.normalize_path(input_path)
+	const parent = path.dirname(normalized_input)
+	if parent == '.' or parent == '' then return suggested_name end
+
+	return path_utils.normalize_path(path.join(parent, suggested_name))
+end
+
+const function find_path_suggestion(input_path: string, cwd: string): string?
+	const resolved_path = resolve_input_path(input_path, cwd)
+	const normalized_input = path_utils.normalize_path(input_path)
+	local parent_path = path.dirname(resolved_path)
+
+	if parent_path == '.' or parent_path == '' then parent_path = cwd end
+	if not fs.exists(parent_path) then return nil end
+	if fs.type(parent_path) ~= 'dir' then return nil end
+
+	const candidates = {} :: { string }
+	for _, entry in fs.listDirectory(parent_path) do
+		table.insert(candidates, entry.name)
+	end
+
+	const suggested_name = suggest.closest_match(
+		path.basename(normalized_input),
+		candidates
+	)
+	if suggested_name == nil then return nil end
+
+	return format_suggested_path(normalized_input, suggested_name)
+end
+
 const function discover_path(
 	results: { string },
 	seen: SeenMap,
@@ -296,17 +331,26 @@ const function discover_path(
 	const resolved_path = resolve_input_path(input.path, cwd)
 	if not fs.exists(resolved_path) then
 		if input.source == 'cli' then
+			const suggested_path =
+				find_path_suggestion(input.path, cwd)
 			error(
 				errors.usage_error(
 					`Could not find test file or directory '{input.path}'.`,
 					{
-						where = `lutest test {input.path}`,
+						command = `lutest test {input.path}`,
+						highlight = input.path,
+						suggestion = if suggested_path
+								== nil
+							then nil
+							else `'{suggested_path}'`,
 						how_to_fix = 'Pass an existing test file or directory path.',
 					}
 				),
 				0
 			)
 		end
+
+		const suggested_root = find_path_suggestion(input.path, cwd)
 
 		error(
 			errors.configuration_error(
@@ -315,6 +359,10 @@ const function discover_path(
 					where = path_utils.normalize_path(
 						path.join(cwd, 'lutest.toml')
 					),
+					suggestion = if suggested_root
+							== nil
+						then nil
+						else `'{suggested_root}'`,
 					how_to_fix = 'Update `discovery.roots` in `lutest.toml` to reference existing directories.',
 				}
 			),
@@ -973,7 +1021,7 @@ t.test('should raise a usage error for a missing explicit test path', function()
 
 	assert(ok == false)
 	assert(message ~= nil)
-	assert(message:find('[lutest] UsageError:', 1, true) ~= nil)
+	message = errors.strip_ansi(errors.display_error(message))
 	assert(
 		message:find(
 			'Could not find test file or directory \'missing-path\'.',
@@ -981,7 +1029,66 @@ t.test('should raise a usage error for a missing explicit test path', function()
 			true
 		) ~= nil
 	)
-	assert(message:find('How to fix:', 1, true) ~= nil)
+	assert(message:find('lutest test missing-path', 1, true) ~= nil)
+	assert(message:find('^^^^', 1, true) ~= nil)
+	assert(message:find('How to fix:', 1, true) == nil)
+	assert(
+		message:find(
+			'Pass an existing test file or directory path.',
+			1,
+			true
+		) ~= nil
+	)
+end)
+
+t.test('should suggest a nearby explicit test path when available', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd = path_utils.resolve_path(
+		temp_root,
+		'discovery-missing-path-suggestion'
+	)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(path.join(temp_cwd, 'core'), {
+		makeParents = true,
+	})
+
+	local message = nil :: string?
+	const ok = xpcall(function()
+		discover_path(
+			{},
+			{},
+			{
+				path = 'coree',
+				source = 'cli',
+			},
+			temp_cwd,
+			{},
+			{
+				roots = { '.' },
+				ignore = {},
+				require = '@lutest_release',
+				gitignore = false,
+			}
+		)
+	end, function(err)
+		message = tostring(err)
+		return message
+	end)
+
+	assert(ok == false)
+	assert(message ~= nil)
+	message = errors.strip_ansi(errors.display_error(message))
+	assert(message:find('lutest test coree', 1, true) ~= nil)
+	assert(message:find('^^^^^', 1, true) ~= nil)
+	assert(message:find('Did you mean \'core\'?', 1, true) ~= nil)
+	assert(message:find('Did you mean:', 1, true) == nil)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
 end)
 
 t.test(
@@ -1012,10 +1119,8 @@ t.test(
 
 		assert(ok == false)
 		assert(message ~= nil)
-		assert(
-			message:find('[lutest] ConfigurationError:', 1, true)
-				~= nil
-		)
+		message = errors.strip_ansi(errors.display_error(message))
+		assert(message:find('ConfigurationError:', 1, true) ~= nil)
 		assert(
 			message:find(
 				'Configured discovery root \'missing-root\' does not exist.',

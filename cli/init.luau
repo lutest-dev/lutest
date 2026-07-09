@@ -3,6 +3,7 @@ const errors = require '@core/errors'
 const help = require '@self/help'
 const reporter = require '@core/reporter'
 const lute = require '@runtimes/lute'
+const suggest = require '@lutest/utils/suggest'
 
 const function collect_cli_args(): { string }
 	const args = {} :: { string }
@@ -61,10 +62,18 @@ const function parse_command(args: { string }): ParsedCommand
 		}
 	end
 
+	const suggested_command = suggest.closest_match(command, {
+		'test',
+	})
+
 	return {
 		kind = 'error',
 		message = errors.usage_error(`Unknown command '{command}'.`, {
-			where = `lutest {command}`,
+			command = `lutest {command}`,
+			highlight = command,
+			suggestion = if suggested_command == nil
+				then nil
+				else `'{suggested_command}'`,
 			how_to_fix = 'Use `lutest test [paths...]` to run tests, or `lutest --help` to see available commands.',
 		}),
 	}
@@ -78,6 +87,10 @@ const function has_failures(results: { reporter.TestSuiteResult }): boolean
 	return false
 end
 
+const function print_lutest_error(message: string)
+	print(errors.display_error(message))
+end
+
 const function main()
 	const args = collect_cli_args()
 	const command = parse_command(args)
@@ -88,7 +101,7 @@ const function main()
 	end
 
 	if command.kind == 'error' then
-		print(command.message :: string)
+		print_lutest_error(command.message :: string)
 		print ''
 		help.print_help()
 		process.exit(1)
@@ -106,9 +119,9 @@ const function main()
 	if not ok then
 		const message = runtime_error :: string
 		if errors.is_lutest_error(message) then
-			print(message)
+			print_lutest_error(message)
 		else
-			print(
+			print_lutest_error(
 				errors.internal_error(
 					'The runner crashed while preparing test suites.',
 					{
@@ -125,16 +138,19 @@ const function main()
 
 	const resolved_results = results :: { reporter.TestSuiteResult }
 	if #resolved_results == 0 then
-		print(errors.usage_error('No test files were discovered.', {
-			where = if #(command.paths :: { string })
-					> 0
-				then `lutest test {table.concat(
-					command.paths :: { string },
-					' '
-				)}`
-				else 'lutest test',
-			how_to_fix = 'Pass an existing test file or directory, or update `discovery.roots` in `lutest.toml`.',
-		}))
+		print_lutest_error(
+			errors.usage_error('No test files were discovered.', {
+				where = if #(
+							command.paths :: { string }
+						) > 0
+					then `lutest test {table.concat(
+						command.paths :: { string },
+						' '
+					)}`
+					else 'lutest test',
+				how_to_fix = 'Pass an existing test file or directory, or update `discovery.roots` in `lutest.toml`.',
+			})
+		)
 		process.exit(1)
 	end
 

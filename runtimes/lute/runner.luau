@@ -593,7 +593,8 @@ error("boom from module")
 
 	assert(ok == false)
 	assert(message ~= nil)
-	assert(message:find('[lutest] RuntimeError:', 1, true) ~= nil)
+	message = errors.strip_ansi(errors.display_error(message))
+	assert(message:find('RuntimeError:', 1, true) ~= nil)
 	assert(
 		message:find(
 			'Could not load test file \'dist/test-tmp/runner-load-error/suite.luau\'.',

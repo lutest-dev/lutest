@@ -1,4 +1,5 @@
 const types = require '@core/types'
+const path_utils = require '@lutest/utils/path'
 const t = require '@lutest_release'
 
 export type TestSpec = types.TestSpec
@@ -49,6 +50,17 @@ const function should_skip_for_focus(
 	return true
 end
 
+const function shorten_workspace_paths(message: string): string
+	const normalized_cwd = path_utils.cwd()
+	const backslash_cwd = normalized_cwd:gsub('/', '\\')
+
+	local shortened = message
+	shortened = shortened:gsub(normalized_cwd .. '/', '')
+	shortened = shortened:gsub(backslash_cwd .. '\\', '')
+
+	return shortened
+end
+
 const function run_test(test: TestSpec): TestResult
 	if test.mode == 'skip' then
 		return {
@@ -76,7 +88,7 @@ const function run_test(test: TestSpec): TestResult
 	return {
 		name = test.name,
 		kind = 'failed',
-		error_message = tostring(result),
+		error_message = shorten_workspace_paths(tostring(result)),
 	}
 end
 
@@ -279,6 +291,34 @@ t.test('should capture thrown errors as failed results', function()
 	assert(result.failed_tests == 1)
 	const failed_result = result.results[1] :: FailedTestResult
 	assert(failed_result.error_message:find('boom', 1, true) ~= nil)
+end)
+
+t.test('should shorten workspace paths in failed error messages', function()
+	const cwd = path_utils.cwd()
+	const result = run({
+		name = 'suite',
+		tests = {
+			runnable_test_spec(
+				'failing test',
+				'run',
+				function(): ()
+					error(
+						`{cwd}/core/errors.luau:205: assertion failed!`
+					)
+				end
+			),
+		},
+	}, { focus_only = false })
+
+	const failed_result = result.results[1] :: FailedTestResult
+	assert(
+		failed_result.error_message:find(
+			'core/errors.luau:205: assertion failed!',
+			1,
+			true
+		) ~= nil
+	)
+	assert(failed_result.error_message:find(cwd, 1, true) == nil)
 end)
 
 return {

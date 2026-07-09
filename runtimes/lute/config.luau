@@ -472,7 +472,8 @@ require = true
 
 	assert(ok == false)
 	assert(message ~= nil)
-	assert(message:find('[lutest] ConfigurationError:', 1, true) ~= nil)
+	message = errors.strip_ansi(errors.display_error(message))
+	assert(message:find('ConfigurationError:', 1, true) ~= nil)
 	assert(message:find('Could not parse config file \'', 1, true) ~= nil)
 	assert(message:find('invalid string value \'true\'', 1, true) ~= nil)
 
@@ -510,10 +511,8 @@ roots = "src"
 
 	assert(roots_ok == false)
 	assert(roots_message ~= nil)
-	assert(
-		roots_message:find('[lutest] ConfigurationError:', 1, true)
-			~= nil
-	)
+	roots_message = errors.strip_ansi(errors.display_error(roots_message))
+	assert(roots_message:find('ConfigurationError:', 1, true) ~= nil)
 	assert(
 		roots_message:find(
 			'lutest.toml key \'roots\' must be an array',
@@ -540,10 +539,8 @@ ignore = false
 
 	assert(ignore_ok == false)
 	assert(ignore_message ~= nil)
-	assert(
-		ignore_message:find('[lutest] ConfigurationError:', 1, true)
-			~= nil
-	)
+	ignore_message = errors.strip_ansi(errors.display_error(ignore_message))
+	assert(ignore_message:find('ConfigurationError:', 1, true) ~= nil)
 	assert(
 		ignore_message:find(
 			'lutest.toml key \'ignore\' must be an array',
@@ -585,7 +582,8 @@ gitignore = "yes"
 
 	assert(ok == false)
 	assert(message ~= nil)
-	assert(message:find('[lutest] ConfigurationError:', 1, true) ~= nil)
+	message = errors.strip_ansi(errors.display_error(message))
+	assert(message:find('ConfigurationError:', 1, true) ~= nil)
 	assert(message:find('invalid boolean value \'"yes"\'', 1, true) ~= nil)
 
 	fs.removeDirectory(temp_cwd, { recursive = true })
@@ -623,7 +621,8 @@ roots = [
 
 	assert(ok == false)
 	assert(message ~= nil)
-	assert(message:find('[lutest] ConfigurationError:', 1, true) ~= nil)
+	message = errors.strip_ansi(errors.display_error(message))
+	assert(message:find('ConfigurationError:', 1, true) ~= nil)
 	assert(message:find('lutest.toml key \'roots\'', 1, true) ~= nil)
 	assert(message:find('unterminated array', 1, true) ~= nil)
 

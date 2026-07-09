@@ -19,12 +19,6 @@ type LutestConfig = config.LutestConfig
 
 const GITIGNORE_PATH = '.gitignore'
 
-const IGNORE_SEGMENTS = {
-	'.git',
-	'luau_packages',
-	'vendor',
-}
-
 const function normalize_ignore_rule(line: string): string
 	const normalized = line:gsub('\\', '/')
 	if stringext.hasSuffix(normalized, '/') then
@@ -32,12 +26,6 @@ const function normalize_ignore_rule(line: string): string
 	end
 
 	return normalized
-end
-
-const function matches_segment(filepath: string, segment: string): boolean
-	return filepath == segment
-		or filepath:find(`/{segment}/`, 1, true) ~= nil
-		or stringext.hasSuffix(filepath, `/{segment}`)
 end
 
 const function matches_gitignore_rule(
@@ -81,14 +69,6 @@ const function load_gitignore_rules(cwd: string): GitignoreRules
 	end
 
 	return rules
-end
-
-const function matches_native_ignore(filepath: string): boolean
-	for _, segment in IGNORE_SEGMENTS do
-		if matches_segment(filepath, segment) then return true end
-	end
-
-	return false
 end
 
 const function matches_config_ignore(
@@ -135,8 +115,6 @@ const function should_prune(
 	gitignore_rules: GitignoreRules,
 	project_config: LutestConfig
 ): boolean
-	if matches_native_ignore(filepath) then return true end
-
 	const relative_path = relative_path_from_cwd(filepath, cwd)
 	if matches_config_ignore(relative_path, project_config.ignore) then
 		return true
@@ -514,88 +492,101 @@ end)
 	fs.removeDirectory(temp_cwd, { recursive = true })
 end)
 
-t.test('should prune native ignored directories', function()
-	const temp_root =
-		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
-	const temp_cwd =
-		path_utils.resolve_path(temp_root, 'discovery-native-ignores')
-	const src_module = path_utils.normalize_path(
-		path.join(temp_cwd, 'src', 'matching.luau')
-	)
-	const vendor_module = path_utils.normalize_path(
-		path.join(temp_cwd, 'vendor', 'ignored.luau')
-	)
-	const git_module = path_utils.normalize_path(
-		path.join(temp_cwd, '.git', 'ignored.luau')
-	)
-	const packages_module = path_utils.normalize_path(
-		path.join(temp_cwd, 'luau_packages', 'ignored.luau')
-	)
+t.test(
+	'should ignore configured directories without native hardcode',
+	function()
+		const temp_root = path_utils.resolve_path(
+			path_utils.cwd(),
+			'dist/test-tmp'
+		)
+		const temp_cwd = path_utils.resolve_path(
+			temp_root,
+			'discovery-native-ignores'
+		)
+		const src_module = path_utils.normalize_path(
+			path.join(temp_cwd, 'src', 'matching.luau')
+		)
+		const vendor_module = path_utils.normalize_path(
+			path.join(temp_cwd, 'vendor', 'ignored.luau')
+		)
+		const git_module = path_utils.normalize_path(
+			path.join(temp_cwd, '.git', 'ignored.luau')
+		)
+		const packages_module = path_utils.normalize_path(
+			path.join(temp_cwd, 'luau_packages', 'ignored.luau')
+		)
 
-	if fs.exists(temp_cwd) then
-		fs.removeDirectory(temp_cwd, { recursive = true })
-	end
+		if fs.exists(temp_cwd) then
+			fs.removeDirectory(temp_cwd, { recursive = true })
+		end
 
-	fs.createDirectory(path.join(temp_cwd, 'src'), { makeParents = true })
-	fs.createDirectory(
-		path.join(temp_cwd, 'vendor'),
-		{ makeParents = true }
-	)
-	fs.createDirectory(path.join(temp_cwd, '.git'), { makeParents = true })
-	fs.createDirectory(path.join(temp_cwd, 'luau_packages'), {
-		makeParents = true,
-	})
+		fs.createDirectory(
+			path.join(temp_cwd, 'src'),
+			{ makeParents = true }
+		)
+		fs.createDirectory(
+			path.join(temp_cwd, 'vendor'),
+			{ makeParents = true }
+		)
+		fs.createDirectory(
+			path.join(temp_cwd, '.git'),
+			{ makeParents = true }
+		)
+		fs.createDirectory(path.join(temp_cwd, 'luau_packages'), {
+			makeParents = true,
+		})
 
-	fs.writeStringToFile(
-		src_module,
-		[[
+		fs.writeStringToFile(
+			src_module,
+			[[
 local t = require("@lutest_release")
 
 t.test("should pass", function()
 	assert(true)
 end)
 ]]
-	)
-	fs.writeStringToFile(
-		vendor_module,
-		[[
+		)
+		fs.writeStringToFile(
+			vendor_module,
+			[[
 local t = require("@lutest_release")
 
 return t
 ]]
-	)
-	fs.writeStringToFile(
-		git_module,
-		[[
+		)
+		fs.writeStringToFile(
+			git_module,
+			[[
 local t = require("@lutest_release")
 
 return t
 ]]
-	)
-	fs.writeStringToFile(
-		packages_module,
-		[[
+		)
+		fs.writeStringToFile(
+			packages_module,
+			[[
 local t = require("@lutest_release")
 
 return t
 ]]
-	)
+		)
 
-	const discovered = {} :: { string }
-	const seen = {} :: SeenMap
+		const discovered = {} :: { string }
+		const seen = {} :: SeenMap
 
-	discover_path(discovered, seen, temp_cwd, temp_cwd, {}, {
-		roots = { '.' },
-		ignore = {},
-		require = '@lutest_release',
-		gitignore = false,
-	})
+		discover_path(discovered, seen, temp_cwd, temp_cwd, {}, {
+			roots = { '.' },
+			ignore = { 'vendor', '.git', 'luau_packages' },
+			require = '@lutest_release',
+			gitignore = false,
+		})
 
-	assert(#discovered == 1)
-	assert(discovered[1] == src_module)
+		assert(#discovered == 1)
+		assert(discovered[1] == src_module)
 
-	fs.removeDirectory(temp_cwd, { recursive = true })
-end)
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+)
 
 t.test('should respect discovery ignore patterns from config', function()
 	const temp_root =

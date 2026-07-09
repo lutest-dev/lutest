@@ -1,4 +1,5 @@
 const fs = require '@std/fs'
+const errors = require '@core/errors'
 const path_utils = require '@lutest/utils/path'
 const path = require '@std/path'
 const stringext = require '@std/stringext'
@@ -249,9 +250,18 @@ const function load_config(cwd: string?): LutestConfig
 
 	if not ok then
 		error(
-			`failed to parse '{path_utils.normalize_path(
-				config_path
-			)}': {parse_error}`,
+			errors.configuration_error(
+				`Could not parse config file '{path_utils.normalize_path(
+					config_path
+				)}'.`,
+				{
+					where = path_utils.normalize_path(
+						config_path
+					),
+					how_to_fix = 'Fix the invalid discovery config in `lutest.toml` and run the command again.',
+					details = parse_error,
+				}
+			),
 			0
 		)
 	end
@@ -462,7 +472,8 @@ require = true
 
 	assert(ok == false)
 	assert(message ~= nil)
-	assert(message:find('failed to parse \'', 1, true) ~= nil)
+	assert(message:find('[lutest] ConfigurationError:', 1, true) ~= nil)
+	assert(message:find('Could not parse config file \'', 1, true) ~= nil)
 	assert(message:find('invalid string value \'true\'', 1, true) ~= nil)
 
 	fs.removeDirectory(temp_cwd, { recursive = true })
@@ -499,7 +510,10 @@ roots = "src"
 
 	assert(roots_ok == false)
 	assert(roots_message ~= nil)
-	assert(roots_message:find('failed to parse \'', 1, true) ~= nil)
+	assert(
+		roots_message:find('[lutest] ConfigurationError:', 1, true)
+			~= nil
+	)
 	assert(
 		roots_message:find(
 			'lutest.toml key \'roots\' must be an array',
@@ -526,7 +540,10 @@ ignore = false
 
 	assert(ignore_ok == false)
 	assert(ignore_message ~= nil)
-	assert(ignore_message:find('failed to parse \'', 1, true) ~= nil)
+	assert(
+		ignore_message:find('[lutest] ConfigurationError:', 1, true)
+			~= nil
+	)
 	assert(
 		ignore_message:find(
 			'lutest.toml key \'ignore\' must be an array',
@@ -568,7 +585,7 @@ gitignore = "yes"
 
 	assert(ok == false)
 	assert(message ~= nil)
-	assert(message:find('failed to parse \'', 1, true) ~= nil)
+	assert(message:find('[lutest] ConfigurationError:', 1, true) ~= nil)
 	assert(message:find('invalid boolean value \'"yes"\'', 1, true) ~= nil)
 
 	fs.removeDirectory(temp_cwd, { recursive = true })
@@ -606,7 +623,7 @@ roots = [
 
 	assert(ok == false)
 	assert(message ~= nil)
-	assert(message:find('failed to parse \'', 1, true) ~= nil)
+	assert(message:find('[lutest] ConfigurationError:', 1, true) ~= nil)
 	assert(message:find('lutest.toml key \'roots\'', 1, true) ~= nil)
 	assert(message:find('unterminated array', 1, true) ~= nil)
 

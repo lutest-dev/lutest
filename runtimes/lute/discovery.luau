@@ -1,4 +1,5 @@
 const config = require '@runtimes/lute/config'
+const errors = require '@core/errors'
 const path_utils = require '@lutest/utils/path'
 const t = require '@lutest_release'
 const fs = require '@std/fs'
@@ -16,6 +17,10 @@ type GitignoreRule = {
 type GitignoreRules = { GitignoreRule }
 type SeenMap = { [string]: boolean }
 type LutestConfig = config.LutestConfig
+type DiscoveryInput = {
+	path: string,
+	source: 'cli' | 'config',
+}
 
 const GITIGNORE_PATH = '.gitignore'
 
@@ -238,11 +243,38 @@ end
 const function resolve_input_paths(
 	paths: { string },
 	project_config: LutestConfig
-): { string }
-	if #paths > 0 then return paths end
-	if #project_config.roots > 0 then return project_config.roots end
+): { DiscoveryInput }
+	if #paths > 0 then
+		const resolved = {} :: { DiscoveryInput }
 
-	return { '.' }
+		for _, input_path in paths do
+			table.insert(resolved, {
+				path = input_path,
+				source = 'cli',
+			})
+		end
+
+		return resolved
+	end
+	if #project_config.roots > 0 then
+		const resolved = {} :: { DiscoveryInput }
+
+		for _, input_path in project_config.roots do
+			table.insert(resolved, {
+				path = input_path,
+				source = 'config',
+			})
+		end
+
+		return resolved
+	end
+
+	return {
+		{
+			path = '.',
+			source = 'config',
+		},
+	}
 end
 
 const function resolve_input_path(input_path: string, cwd: string): string
@@ -256,12 +288,39 @@ end
 const function discover_path(
 	results: { string },
 	seen: SeenMap,
-	input_path: string,
+	input: DiscoveryInput,
 	cwd: string,
 	gitignore_rules: GitignoreRules,
 	project_config: LutestConfig
 )
-	const resolved_path = resolve_input_path(input_path, cwd)
+	const resolved_path = resolve_input_path(input.path, cwd)
+	if not fs.exists(resolved_path) then
+		if input.source == 'cli' then
+			error(
+				errors.usage_error(
+					`Could not find test file or directory '{input.path}'.`,
+					{
+						where = `lutest test {input.path}`,
+						how_to_fix = 'Pass an existing test file or directory path.',
+					}
+				),
+				0
+			)
+		end
+
+		error(
+			errors.configuration_error(
+				`Configured discovery root '{input.path}' does not exist.`,
+				{
+					where = path_utils.normalize_path(
+						path.join(cwd, 'lutest.toml')
+					),
+					how_to_fix = 'Update `discovery.roots` in `lutest.toml` to reference existing directories.',
+				}
+			),
+			0
+		)
+	end
 	if
 		should_prune(
 			resolved_path,
@@ -305,11 +364,11 @@ const function discover_files(paths: { string }): { string }
 	const gitignore_rules = load_gitignore_rules(cwd)
 	const project_config = config.load_config(cwd)
 
-	for _, input_path in resolve_input_paths(paths, project_config) do
+	for _, input in resolve_input_paths(paths, project_config) do
 		discover_path(
 			discovered,
 			seen,
-			input_path,
+			input,
 			cwd,
 			gitignore_rules,
 			project_config
@@ -332,8 +391,10 @@ t.test('should prefer explicit input paths over config roots', function()
 	})
 
 	assert(#resolved == 2)
-	assert(resolved[1] == 'src')
-	assert(resolved[2] == 'tests')
+	assert(resolved[1].path == 'src')
+	assert(resolved[1].source == 'cli')
+	assert(resolved[2].path == 'tests')
+	assert(resolved[2].source == 'cli')
 end)
 
 t.test('should use config roots when no input paths are provided', function()
@@ -345,8 +406,10 @@ t.test('should use config roots when no input paths are provided', function()
 	})
 
 	assert(#resolved == 2)
-	assert(resolved[1] == 'src')
-	assert(resolved[2] == 'tests')
+	assert(resolved[1].path == 'src')
+	assert(resolved[1].source == 'config')
+	assert(resolved[2].path == 'tests')
+	assert(resolved[2].source == 'config')
 end)
 
 t.test('should discover only .luau modules requiring the test lib', function()
@@ -390,12 +453,22 @@ return t
 	const discovered = {} :: { string }
 	const seen = {} :: SeenMap
 
-	discover_path(discovered, seen, temp_cwd, temp_cwd, {}, {
-		roots = { '.' },
-		ignore = {},
-		require = '@lutest_release',
-		gitignore = false,
-	})
+	discover_path(
+		discovered,
+		seen,
+		{
+			path = temp_cwd,
+			source = 'cli',
+		},
+		temp_cwd,
+		{},
+		{
+			roots = { '.' },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = false,
+		}
+	)
 
 	assert(#discovered == 1)
 	assert(discovered[1] == matching_module)
@@ -431,12 +504,22 @@ return value
 	const discovered = {} :: { string }
 	const seen = {} :: SeenMap
 
-	discover_path(discovered, seen, non_matching_module, temp_cwd, {}, {
-		roots = { '.' },
-		ignore = {},
-		require = '@lutest_release',
-		gitignore = false,
-	})
+	discover_path(
+		discovered,
+		seen,
+		{
+			path = non_matching_module,
+			source = 'cli',
+		},
+		temp_cwd,
+		{},
+		{
+			roots = { '.' },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = false,
+		}
+	)
 
 	assert(#discovered == 0)
 
@@ -476,15 +559,14 @@ end)
 		gitignore = false,
 	}
 
-	discover_path(discovered, seen, temp_cwd, temp_cwd, {}, project_config)
-	discover_path(
-		discovered,
-		seen,
-		matching_module,
-		temp_cwd,
-		{},
-		project_config
-	)
+	discover_path(discovered, seen, {
+		path = temp_cwd,
+		source = 'cli',
+	}, temp_cwd, {}, project_config)
+	discover_path(discovered, seen, {
+		path = matching_module,
+		source = 'cli',
+	}, temp_cwd, {}, project_config)
 
 	assert(#discovered == 1)
 	assert(discovered[1] == matching_module)
@@ -574,12 +656,22 @@ return t
 		const discovered = {} :: { string }
 		const seen = {} :: SeenMap
 
-		discover_path(discovered, seen, temp_cwd, temp_cwd, {}, {
-			roots = { '.' },
-			ignore = { 'vendor', '.git', 'luau_packages' },
-			require = '@lutest_release',
-			gitignore = false,
-		})
+		discover_path(
+			discovered,
+			seen,
+			{
+				path = temp_cwd,
+				source = 'cli',
+			},
+			temp_cwd,
+			{},
+			{
+				roots = { '.' },
+				ignore = { 'vendor', '.git', 'luau_packages' },
+				require = '@lutest_release',
+				gitignore = false,
+			}
+		)
 
 		assert(#discovered == 1)
 		assert(discovered[1] == src_module)
@@ -633,12 +725,22 @@ end)
 	const discovered = {} :: { string }
 	const seen = {} :: SeenMap
 
-	discover_path(discovered, seen, temp_cwd, temp_cwd, {}, {
-		roots = { '.' },
-		ignore = { 'generated' },
-		require = '@lutest_release',
-		gitignore = false,
-	})
+	discover_path(
+		discovered,
+		seen,
+		{
+			path = temp_cwd,
+			source = 'cli',
+		},
+		temp_cwd,
+		{},
+		{
+			roots = { '.' },
+			ignore = { 'generated' },
+			require = '@lutest_release',
+			gitignore = false,
+		}
+	)
 
 	assert(#discovered == 1)
 	assert(discovered[1] == kept_module)
@@ -696,12 +798,22 @@ end)
 	const seen = {} :: SeenMap
 	const gitignore_rules = load_gitignore_rules(temp_cwd)
 
-	discover_path(discovered, seen, temp_cwd, temp_cwd, gitignore_rules, {
-		roots = { '.' },
-		ignore = {},
-		require = '@lutest_release',
-		gitignore = true,
-	})
+	discover_path(
+		discovered,
+		seen,
+		{
+			path = temp_cwd,
+			source = 'cli',
+		},
+		temp_cwd,
+		gitignore_rules,
+		{
+			roots = { '.' },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = true,
+		}
+	)
 
 	assert(#discovered == 1)
 	assert(discovered[1] == kept_module)
@@ -759,12 +871,22 @@ end)
 	const seen = {} :: SeenMap
 	const gitignore_rules = load_gitignore_rules(temp_cwd)
 
-	discover_path(discovered, seen, temp_cwd, temp_cwd, gitignore_rules, {
-		roots = { '.' },
-		ignore = {},
-		require = '@lutest_release',
-		gitignore = false,
-	})
+	discover_path(
+		discovered,
+		seen,
+		{
+			path = temp_cwd,
+			source = 'cli',
+		},
+		temp_cwd,
+		gitignore_rules,
+		{
+			roots = { '.' },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = false,
+		}
+	)
 
 	table.sort(discovered)
 	assert(#discovered == 2)
@@ -803,17 +925,106 @@ end
 	const discovered = {} :: { string }
 	const seen = {} :: SeenMap
 
-	discover_path(discovered, seen, invalid_module, temp_cwd, {}, {
-		roots = { '.' },
-		ignore = {},
-		require = '@lutest_release',
-		gitignore = false,
-	})
+	discover_path(
+		discovered,
+		seen,
+		{
+			path = invalid_module,
+			source = 'cli',
+		},
+		temp_cwd,
+		{},
+		{
+			roots = { '.' },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = false,
+		}
+	)
 
 	assert(#discovered == 0)
 
 	fs.removeDirectory(temp_cwd, { recursive = true })
 end)
+
+t.test('should raise a usage error for a missing explicit test path', function()
+	local message = nil :: string?
+	const ok = xpcall(function()
+		discover_path(
+			{},
+			{},
+			{
+				path = 'missing-path',
+				source = 'cli',
+			},
+			path_utils.cwd(),
+			{},
+			{
+				roots = { '.' },
+				ignore = {},
+				require = '@lutest_release',
+				gitignore = false,
+			}
+		)
+	end, function(err)
+		message = tostring(err)
+		return message
+	end)
+
+	assert(ok == false)
+	assert(message ~= nil)
+	assert(message:find('[lutest] UsageError:', 1, true) ~= nil)
+	assert(
+		message:find(
+			'Could not find test file or directory \'missing-path\'.',
+			1,
+			true
+		) ~= nil
+	)
+	assert(message:find('How to fix:', 1, true) ~= nil)
+end)
+
+t.test(
+	'should raise a configuration error for a missing discovery root',
+	function()
+		local message = nil :: string?
+		const ok = xpcall(function()
+			discover_path(
+				{},
+				{},
+				{
+					path = 'missing-root',
+					source = 'config',
+				},
+				path_utils.cwd(),
+				{},
+				{
+					roots = { 'missing-root' },
+					ignore = {},
+					require = '@lutest_release',
+					gitignore = false,
+				}
+			)
+		end, function(err)
+			message = tostring(err)
+			return message
+		end)
+
+		assert(ok == false)
+		assert(message ~= nil)
+		assert(
+			message:find('[lutest] ConfigurationError:', 1, true)
+				~= nil
+		)
+		assert(
+			message:find(
+				'Configured discovery root \'missing-root\' does not exist.',
+				1,
+				true
+			) ~= nil
+		)
+	end
+)
 
 t.test('should keep discovered files sorted', function()
 	const temp_cwd = path_utils.resolve_path(

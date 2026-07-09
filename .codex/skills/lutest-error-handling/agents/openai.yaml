@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lutest Error Handling"
+  short_description: "Standardize clear DX-first Lutest errors"
+  default_prompt: "Use $lutest-error-handling to improve user-facing Lutest errors without hiding internal framework bugs."

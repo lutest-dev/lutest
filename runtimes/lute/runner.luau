@@ -1,4 +1,5 @@
 const core = require '@core'
+const errors = require '@core/errors'
 const context = require '@lib/context'
 const registry = require '@lib/registry'
 const config = require '@runtimes/lute/config'
@@ -36,8 +37,15 @@ const function is_project_module(
 end
 
 const function format_load_error(module_path: string, err: unknown): string
-	const message = `failed to load '{module_path}': {tostring(err)}`
-	return debug.traceback(message, 2)
+	return errors.runtime_error(
+		`Could not load test file '{path_utils.relative_to_cwd(
+			module_path
+		)}'.`,
+		{
+			where = path_utils.relative_to_cwd(module_path),
+			details = debug.traceback(tostring(err), 2),
+		}
+	)
 end
 
 const function should_use_embedded_release_api(
@@ -547,6 +555,54 @@ return {
 	assert((result :: any).string_type == 'table')
 	assert((result :: any).table_type == 'table')
 	assert(#tests == 0)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should report runtime load errors with test file context', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd = path_utils.resolve_path(temp_root, 'runner-load-error')
+	const suite_path =
+		path_utils.normalize_path(path.join(temp_cwd, 'suite.luau'))
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		suite_path,
+		[[
+error("boom from module")
+]]
+	)
+
+	local message = nil :: string?
+	const ok = xpcall(function()
+		load_module(suite_path, {
+			roots = { '.' },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = true,
+		})
+	end, function(err)
+		message = tostring(err)
+		return message
+	end)
+
+	assert(ok == false)
+	assert(message ~= nil)
+	assert(message:find('[lutest] RuntimeError:', 1, true) ~= nil)
+	assert(
+		message:find(
+			'Could not load test file \'dist/test-tmp/runner-load-error/suite.luau\'.',
+			1,
+			true
+		) ~= nil
+	)
+	assert(message:find('Details:', 1, true) ~= nil)
+	assert(message:find('boom from module', 1, true) ~= nil)
 
 	fs.removeDirectory(temp_cwd, { recursive = true })
 end)

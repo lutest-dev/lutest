@@ -21,5 +21,3 @@ Do not introduce metatables unless the user explicitly asks for them or has appr
 Do not make project scripts depend on `vendor` checkout layout or uninitialized submodules unless the script is explicitly maintainer-only and that constraint is documented in the script and user-facing docs.
 
 Prefer external tools resolved from the environment, explicit arguments, or dedicated env vars over hardcoded paths inside `vendor`.
-
-After changing any `*.luau` file, always run the relevant Luau validation commands before finishing the task. At minimum, run `lutest test`, and when the task touches formatting or lint-sensitive code paths, also run the corresponding project checks such as `mise run lint` or `mise run check` when they are relevant and available. Run `mise run typecheck` when typing-sensitive code changes are involved or when type-health is being audited, but do not treat it as a required green gate until the repository-wide typecheck is known to pass.

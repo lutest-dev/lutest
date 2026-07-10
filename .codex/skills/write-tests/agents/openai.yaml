@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Tests"
+  short_description: "Write valuable, clear tests"
+  default_prompt: "Use $write-tests to add focused tests with short should* names and real coverage."

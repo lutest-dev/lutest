@@ -4,6 +4,10 @@ const t = require '@lutest_release'
 
 export type TestSuiteResult = types.TestSuiteResult
 export type FailedTestResult = types.FailedTestResult
+type TodoSuite = {
+	name: string,
+	tests: { types.TodoTestSpec },
+}
 
 type RunResult = {
 	total_tests: number,
@@ -119,6 +123,41 @@ end
 
 const function print_run_result(results: { TestSuiteResult })
 	print(format_run_result(results))
+end
+
+const function collect_todo_count(todo_suites: { TodoSuite }): number
+	local todo_count = 0
+
+	for _, suite in todo_suites do
+		todo_count += #suite.tests
+	end
+
+	return todo_count
+end
+
+const function format_todo_result(todo_suites: { TodoSuite }): string
+	const todo_count = collect_todo_count(todo_suites)
+
+	if todo_count == 0 then return 'No todo test cases found.' end
+
+	local lines = {
+		`{tint.magenta.bold 'TODO'}  {todo_count} total`,
+	} :: { string }
+
+	for _, suite in todo_suites do
+		table.insert(lines, '')
+		table.insert(lines, suite.name)
+
+		for _, test in suite.tests do
+			table.insert(lines, `  * {test.name}`)
+		end
+	end
+
+	return table.concat(lines, '\n')
+end
+
+const function print_todo_result(todo_suites: { TodoSuite })
+	print(format_todo_result(todo_suites))
 end
 
 t.test('should format aggregated run results in one line', function()
@@ -279,8 +318,52 @@ t.test('should omit non-failed details from failed output', function()
 	assert(output:find('todo marker', 1, true) == nil)
 end)
 
+t.test('should format a todo list grouped by suite', function()
+	const output = format_todo_result {
+		{
+			name = 'core/reporter.luau',
+			tests = {
+				{
+					name = 'should show nested suite summaries',
+					mode = 'todo',
+				},
+				{
+					name = 'should support compact failure grouping',
+					mode = 'todo',
+				},
+			},
+		},
+		{
+			name = 'runtimes/lute/discovery.luau',
+			tests = {
+				{
+					name = 'should support glob roots',
+					mode = 'todo',
+				},
+			},
+		},
+	}
+
+	assert(output:find('TODO', 1, true) ~= nil)
+	assert(output:find('3 total', 1, true) ~= nil)
+	assert(output:find('core/reporter.luau', 1, true) ~= nil)
+	assert(
+		output:find('  * should show nested suite summaries', 1, true)
+			~= nil
+	)
+	assert(output:find('  * should support glob roots', 1, true) ~= nil)
+end)
+
+t.test('should format an empty todo list compactly', function()
+	const output = format_todo_result {}
+
+	assert(output == 'No todo test cases found.')
+end)
+
 return {
 	collect_run_result = collect_run_result,
 	format_run_result = format_run_result,
+	format_todo_result = format_todo_result,
 	print_run_result = print_run_result,
+	print_todo_result = print_todo_result,
 }

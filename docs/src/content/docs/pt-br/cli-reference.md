@@ -10,6 +10,10 @@ A CLI atual é compacta.
 lutest test [paths...]
 ```
 
+```powershell
+lutest todo [paths...]
+```
+
 ## Version
 
 ```powershell
@@ -24,9 +28,9 @@ lutest help
 
 ## Paths
 
-Quando você passa paths para `lutest test`, o Lutest usa esses paths como entrada de discovery.
+Quando você passa paths para `lutest test` ou `lutest todo`, o Lutest usa esses paths como entrada de discovery.
 
-Quando você não passa paths para `lutest test`, o Lutest usa os `roots` de `lutest.toml`, ou `.` quando não existe config.
+Quando você não passa paths para `lutest test` ou `lutest todo`, o Lutest usa os `roots` de `lutest.toml`, ou `.` quando não existe config.
 
 ## Comportamento de saída
 

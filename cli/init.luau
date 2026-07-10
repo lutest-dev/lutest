@@ -6,6 +6,11 @@ const version = require '@self/version'
 const reporter = require '@core/reporter'
 const lute = require '@runtimes/lute'
 
+type TodoSuite = {
+	name: string,
+	tests: { { name: string, mode: 'todo' } },
+}
+
 const function collect_cli_args(): { string }
 	const args = {} :: { string }
 
@@ -26,6 +31,29 @@ end
 
 const function print_lutest_error(message: string)
 	print(errors.display_error(message))
+end
+
+const function collect_todo_suites(paths: { string }): { TodoSuite }
+	local todo_suites = {} :: { TodoSuite }
+
+	for _, suite in lute.collect_suites(lute.discover_files(paths)) do
+		const todo_tests = {} :: { { name: string, mode: 'todo' } }
+
+		for _, test in suite.tests do
+			if test.mode ~= 'todo' then continue end
+
+			table.insert(todo_tests, test)
+		end
+
+		if #todo_tests == 0 then continue end
+
+		table.insert(todo_suites, {
+			name = suite.name,
+			tests = todo_tests,
+		})
+	end
+
+	return todo_suites
 end
 
 const function main()
@@ -50,8 +78,16 @@ const function main()
 	end
 
 	local results = nil :: { reporter.TestSuiteResult }?
+	local todo_suites = nil :: { TodoSuite }?
 	local runtime_error = nil :: string?
 	const ok = xpcall(function()
+		if parsed_command.kind == 'todo' then
+			todo_suites = collect_todo_suites(
+				parsed_command.paths :: { string }
+			)
+			return
+		end
+
 		results =
 			lute.run_discovered(parsed_command.paths :: { string })
 	end, function(err)
@@ -77,6 +113,11 @@ const function main()
 		end
 
 		process.exit(1)
+	end
+
+	if parsed_command.kind == 'todo' then
+		reporter.print_todo_result(todo_suites :: { TodoSuite })
+		process.exit(0)
 	end
 
 	const resolved_results = results :: { reporter.TestSuiteResult }

@@ -5,6 +5,7 @@ const function format_help(): string
 	return table.concat({
 		tint.cyan.bold 'Usage:',
 		`  {tint.green 'lutest test [paths...]'}`,
+		`  {tint.green 'lutest todo [paths...]'}`,
 		`  {tint.green 'lutest version'}`,
 		`  {tint.green 'lutest help'}`,
 		'',
@@ -18,6 +19,8 @@ const function format_help(): string
 		`  {tint.green 'lutest test .'}`,
 		`  {tint.green 'lutest test src'}`,
 		`  {tint.green 'lutest test src packages'}`,
+		`  {tint.green 'lutest todo'}`,
+		`  {tint.green 'lutest todo core'}`,
 		`  {tint.green 'lutest version'}`,
 		`  {tint.green 'lutest help'}`,
 	}, '\n')
@@ -32,6 +35,7 @@ t.test('should format help with usage, description, and examples', function()
 
 	assert(output:find('Usage:', 1, true) ~= nil)
 	assert(output:find('lutest test [paths...]', 1, true) ~= nil)
+	assert(output:find('lutest todo [paths...]', 1, true) ~= nil)
 	assert(output:find('lutest version', 1, true) ~= nil)
 	assert(output:find('lutest help', 1, true) ~= nil)
 	assert(output:find('lutest --help', 1, true) == nil)
@@ -45,6 +49,7 @@ t.test('should format help with usage, description, and examples', function()
 	)
 	assert(output:find('Examples:', 1, true) ~= nil)
 	assert(output:find('lutest test src packages', 1, true) ~= nil)
+	assert(output:find('lutest todo core', 1, true) ~= nil)
 end)
 
 return {

@@ -3,7 +3,7 @@ const suggest = require '@lutest/utils/suggest'
 const t = require '@lutest_release'
 
 export type ParsedCommand = {
-	kind: 'help' | 'test' | 'version' | 'error',
+	kind: 'help' | 'test' | 'todo' | 'version' | 'error',
 	paths: { string }?,
 	message: string?,
 }
@@ -25,7 +25,7 @@ const function parse_command(args: { string }): ParsedCommand
 			kind = 'error',
 			message = errors.usage_error('Missing command.', {
 				where = 'lutest',
-				how_to_fix = 'Use `lutest test [paths...]` to run tests, `lutest version` to see the current version, or `lutest help` to see available commands.',
+				how_to_fix = 'Use `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
 			}),
 		}
 	end
@@ -41,6 +41,13 @@ const function parse_command(args: { string }): ParsedCommand
 		kind = 'help',
 	} end
 
+	if command == 'todo' then
+		return {
+			kind = 'todo',
+			paths = collect_paths(args, 2),
+		}
+	end
+
 	if command == 'version' then return {
 		kind = 'version',
 	} end
@@ -48,6 +55,7 @@ const function parse_command(args: { string }): ParsedCommand
 	const suggested_command = suggest.closest_match(command, {
 		'help',
 		'test',
+		'todo',
 		'version',
 	})
 
@@ -59,7 +67,7 @@ const function parse_command(args: { string }): ParsedCommand
 			suggestion = if suggested_command == nil
 				then nil
 				else `'{suggested_command}'`,
-			how_to_fix = 'Use `lutest test [paths...]` to run tests, `lutest version` to see the current version, or `lutest help` to see available commands.',
+			how_to_fix = 'Use `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
 		}),
 	}
 end
@@ -91,6 +99,18 @@ t.test('should parse version subcommand as version', function()
 	}
 
 	assert(command.kind == 'version')
+end)
+
+t.test('should parse todo subcommand paths', function()
+	const command = parse_command {
+		'todo',
+		'core',
+	}
+
+	assert(command.kind == 'todo')
+	assert(command.paths ~= nil)
+	assert(#(command.paths :: { string }) == 1)
+	assert((command.paths :: { string })[1] == 'core')
 end)
 
 t.test('should parse test subcommand paths', function()

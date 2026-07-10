@@ -275,6 +275,26 @@ const function create_suite(module_path: string, tests: { TestSpec }): TestSuite
 	}
 end
 
+const function collect_suites(paths: { string }): { TestSuite }
+	const project_config = config.load_config(path_utils.cwd())
+	const suites = {} :: { TestSuite }
+
+	for _, module_path in paths do
+		const resolved_module_path =
+			path_utils.resolve_from_cwd(module_path)
+		const _, tests =
+			load_module(resolved_module_path, project_config)
+		if #tests == 0 then
+			warn_missing_tests(resolved_module_path, project_config)
+			continue
+		end
+
+		table.insert(suites, create_suite(resolved_module_path, tests))
+	end
+
+	return suites
+end
+
 const function has_only_tests(suites: { TestSuite }): boolean
 	for _, suite in suites do
 		for _, test in suite.tests do
@@ -298,22 +318,7 @@ const function run_file(module_path: string): { TestSuiteResult }
 end
 
 const function run_files(paths: { string }): { TestSuiteResult }
-	const project_config = config.load_config(path_utils.cwd())
-	const suites = {} :: { TestSuite }
-
-	for _, module_path in paths do
-		const resolved_module_path =
-			path_utils.resolve_from_cwd(module_path)
-		const _, tests =
-			load_module(resolved_module_path, project_config)
-		if #tests == 0 then
-			warn_missing_tests(resolved_module_path, project_config)
-			continue
-		end
-
-		table.insert(suites, create_suite(resolved_module_path, tests))
-	end
-
+	const suites = collect_suites(paths)
 	const suite_results = {} :: { TestSuiteResult }
 	const resolved_focus_only = has_only_tests(suites)
 
@@ -608,7 +613,10 @@ error("boom from module")
 	fs.removeDirectory(temp_cwd, { recursive = true })
 end)
 
+t.todo 'askmaska'
+
 return {
+	collect_suites = collect_suites,
 	run_file = run_file,
 	run_files = run_files,
 	run_discovered = run_discovered,

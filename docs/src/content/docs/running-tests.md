@@ -37,6 +37,8 @@ Lutest bundles every `.luau` file under `discovery.roblox.roots` together with t
 
 Set `ROBLOX_OPEN_CLOUD_API_KEY` in the environment or `.env` before running the command. In CI, use an API-key secret and a fixed `roblox.version_id`.
 
+See [Roblox Runtime](./roblox-runtime/) for a complete setup guide, including API-key configuration and remote execution behavior.
+
 You can also pass more than one path:
 
 ```powershell

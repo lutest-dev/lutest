@@ -2,6 +2,7 @@ const fs = require '@std/fs'
 const json = require '@std/json'
 const path = require '@std/path'
 const process = require '@std/process'
+const system = require '@std/system'
 const errors = require '@core/errors'
 const path_utils = require '@lutest/utils/path'
 const embedded_assets = require '@self/embedded_assets'
@@ -21,7 +22,7 @@ type BundlePaths = {
 	script: string,
 }
 
-const BUNDLE_DIRECTORY = 'dist/.lutest/roblox'
+const BUNDLE_DIRECTORY = 'lutest/roblox'
 const function lune_command(): string
 	const configured = process.env.LUTEST_LUNE_BIN
 	if type(configured) == 'string' and configured ~= '' then
@@ -62,9 +63,14 @@ const function ensure_lune_available(command: string)
 	end
 end
 
+const function bundle_directory(): string
+	return path_utils.normalize_path(
+		path.join(system.tmpdir(), BUNDLE_DIRECTORY)
+	)
+end
+
 const function bundle_paths(): BundlePaths
-	const directory =
-		path_utils.resolve_path(path_utils.cwd(), BUNDLE_DIRECTORY)
+	const directory = bundle_directory()
 	path_utils.ensure_directory(directory)
 	const nonce = `{os.time()}-{math.random(100000, 999999)}`
 	return {
@@ -209,6 +215,18 @@ t.test('should encode source files as a Lune bundle manifest', function()
 	}
 	assert(output:find('src/example.luau', 1, true) ~= nil)
 end)
+
+t.test(
+	'should create Roblox bundles under the system temporary directory',
+	function()
+		const directory = bundle_directory()
+		const temporary_root =
+			path_utils.normalize_path(system.tmpdir())
+
+		assert(directory:sub(1, #temporary_root) == temporary_root)
+		assert(directory:find('/dist/', 1, true) == nil)
+	end
+)
 
 return {
 	build = build,

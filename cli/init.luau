@@ -3,13 +3,13 @@ const errors = require '@core/errors'
 const command = require '@self/command'
 const help = require '@self/help'
 const version = require '@self/version'
-const reporter = require '@core/reporter'
+const reporter = require '@self/reporter'
+const todo = require '@self/todo'
 const lute = require '@runtimes/lute'
+const roblox = require '@runtimes/roblox'
 
-type TodoSuite = {
-	name: string,
-	tests: { { name: string, mode: 'todo' } },
-}
+type TodoTest = todo.TodoTest
+type TodoSuite = todo.TodoSuite
 
 const function collect_cli_args(): { string }
 	const args = {} :: { string }
@@ -37,12 +37,18 @@ const function collect_todo_suites(paths: { string }): { TodoSuite }
 	local todo_suites = {} :: { TodoSuite }
 
 	for _, suite in lute.collect_suites(lute.discover_files(paths)) do
-		const todo_tests = {} :: { { name: string, mode: 'todo' } }
+		const todo_tests = {} :: { TodoTest }
 
 		for _, test in suite.tests do
 			if test.mode ~= 'todo' then continue end
 
-			table.insert(todo_tests, test)
+			table.insert(
+				todo_tests,
+				{
+					name = test.name,
+					mode = 'todo',
+				} :: TodoTest
+			)
 		end
 
 		if #todo_tests == 0 then continue end
@@ -82,9 +88,33 @@ const function main()
 	local runtime_error = nil :: string?
 	const ok = xpcall(function()
 		if parsed_command.kind == 'todo' then
+			if parsed_command.runtime == 'roblox' then
+				const remote_results = roblox.run(
+					parsed_command.paths :: { string },
+					'todo'
+				) :: { reporter.TestSuiteResult }
+				const remote_todos, failures =
+					todo.collect_remote_todo_suites(
+						remote_results
+					)
+				if #failures > 0 then
+					reporter.print_run_result(failures)
+					process.exit(1)
+				end
+				todo_suites = remote_todos
+				return
+			end
 			todo_suites = collect_todo_suites(
 				parsed_command.paths :: { string }
 			)
+			return
+		end
+
+		if parsed_command.runtime == 'roblox' then
+			results = roblox.run(
+				parsed_command.paths :: { string },
+				'test'
+			) :: any
 			return
 		end
 

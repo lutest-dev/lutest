@@ -1,3 +1,3 @@
 pnpm exec lint-staged
 mise run typecheck
-lutest test
+lute run scripts/test.luau

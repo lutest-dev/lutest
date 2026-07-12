@@ -2,6 +2,7 @@ return {
 	lute = {
 		lint = {
 			ignores = {
+				'scripts/build-roblox-bundle.luau',
 				'vendor/**',
 				'luau_packages/**',
 				'Packages/**',
@@ -11,6 +12,7 @@ return {
 	luau = {
 		languagemode = 'strict',
 		aliases = {
+			lune = '~/.lune/.typedefs/0.10.5/',
 			lutest = '.',
 			core = 'core',
 			lib = 'lib',

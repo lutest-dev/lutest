@@ -2,7 +2,7 @@ const fs = require '@std/fs'
 const json = require '@std/json'
 const process = require '@std/process'
 
-type JsonObject = { [string]: any }
+type JsonObject = json.Object
 type StringSet = { [string]: boolean }
 
 const PROJECT_PREFIXES = {
@@ -18,6 +18,7 @@ const IGNORE_GLOBS = {
 	'.github/**',
 	'.husky/**',
 	'.tmp/**',
+	'scripts/build-roblox-bundle.luau',
 	'.vscode/**',
 	'dist/**',
 	'docs/**',
@@ -75,9 +76,7 @@ const function get_definition_files(settings: JsonObject?): JsonObject?
 	if settings == nil then return nil end
 
 	const value = settings['luau-lsp.types.definitionFiles']
-	if typeof(value) == 'table' then return value :: JsonObject end
-
-	return nil
+	return json.asObject(value)
 end
 
 const function is_http_url(value: string): boolean
@@ -193,7 +192,7 @@ const function sanitize_editor_settings(
 	settings: JsonObject,
 	roblox_definitions_path: string?
 ): JsonObject
-	const sanitized = {} :: JsonObject
+	const sanitized = json.object {}
 
 	for key, value in settings do
 		if key == 'luau-lsp.fflags.override' then continue end
@@ -203,11 +202,12 @@ const function sanitize_editor_settings(
 	end
 
 	const overrides = settings['luau-lsp.fflags.override']
-	if typeof(overrides) == 'table' then
+	const override_object = json.asObject(overrides)
+	if override_object ~= nil then
 		local sanitized_overrides = json.object {}
 		local has_overrides = false
 
-		for flag_name, flag_value in overrides :: JsonObject do
+		for flag_name, flag_value in override_object do
 			local normalized_flag_name = FFLAG_RENAMES[flag_name]
 				or flag_name
 			sanitized_overrides[normalized_flag_name] = flag_value
@@ -405,7 +405,11 @@ const function main()
 	print 'Typecheck passed for project-owned files.'
 end
 
-local ok, err = pcall(main)
+local err = nil :: string?
+const ok = xpcall(main, function(error_value)
+	err = tostring(error_value)
+	return err
+end)
 
 if not ok then
 	print(tostring(err))

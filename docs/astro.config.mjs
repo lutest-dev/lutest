@@ -77,6 +77,10 @@ export default defineConfig({
 							slug: 'configuration',
 						},
 						{
+							label: 'Roblox Runtime',
+							slug: 'roblox-runtime',
+						},
+						{
 							label: 'Concepts',
 							translations: {
 								'pt-BR': 'Conceitos',

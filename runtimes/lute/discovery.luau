@@ -437,6 +437,122 @@ const function discover_files(paths: { string }): { string }
 	return discovered
 end
 
+const function add_luau_file(
+	results: { string },
+	seen: SeenMap,
+	filepath: string,
+	cwd: string,
+	gitignore_rules: GitignoreRules,
+	project_config: LutestConfig
+)
+	if seen[filepath] then return end
+	if should_prune(filepath, cwd, gitignore_rules, project_config) then
+		return
+	end
+	if not is_luau_module(filepath) then return end
+	seen[filepath] = true
+	table.insert(results, filepath)
+end
+
+const function walk_all_luau_files(
+	results: { string },
+	seen: SeenMap,
+	directory: string,
+	cwd: string,
+	gitignore_rules: GitignoreRules,
+	project_config: LutestConfig
+)
+	for _, entry in fs.listDirectory(directory) do
+		const entry_path = path_utils.normalize_path(
+			path.join(directory, entry.name)
+		)
+		if
+			should_prune(
+				entry_path,
+				cwd,
+				gitignore_rules,
+				project_config
+			)
+		then
+			continue
+		end
+		if entry.type == 'dir' then
+			walk_all_luau_files(
+				results,
+				seen,
+				entry_path,
+				cwd,
+				gitignore_rules,
+				project_config
+			)
+			continue
+		end
+		if entry.type == 'file' then
+			add_luau_file(
+				results,
+				seen,
+				entry_path,
+				cwd,
+				gitignore_rules,
+				project_config
+			)
+		end
+	end
+end
+
+const function discover_all_files(
+	paths: { string },
+	project_config: LutestConfig
+): { string }
+	const discovered = {} :: { string }
+	const seen = {} :: SeenMap
+	const cwd = path_utils.cwd()
+	const gitignore_rules = load_gitignore_rules(cwd)
+
+	for _, input in resolve_input_paths(paths, project_config) do
+		const resolved_path = resolve_input_path(input.path, cwd)
+		if not fs.exists(resolved_path) then
+			error(
+				errors.configuration_error(
+					`Configured discovery root '{input.path}' does not exist.`,
+					{
+						where = path_utils.normalize_path(
+							path.join(
+								cwd,
+								'lutest.toml'
+							)
+						),
+						how_to_fix = 'Update the configured discovery roots to reference existing files or directories.',
+					}
+				),
+				0
+			)
+		end
+		if fs.type(resolved_path) == 'file' then
+			add_luau_file(
+				discovered,
+				seen,
+				resolved_path,
+				cwd,
+				gitignore_rules,
+				project_config
+			)
+		else
+			walk_all_luau_files(
+				discovered,
+				seen,
+				resolved_path,
+				cwd,
+				gitignore_rules,
+				project_config
+			)
+		end
+	end
+
+	table.sort(discovered)
+	return discovered
+end
+
 t.test('should prefer explicit input paths over config roots', function()
 	const resolved = resolve_input_paths({
 		'src',
@@ -1190,5 +1306,6 @@ end)
 end)
 
 return {
+	discover_all_files = discover_all_files,
 	discover_files = discover_files,
 }

@@ -1,5 +1,15 @@
 [discovery]
+ignore = ["vendor", "luau_packages", ".git"]
+gitignore = true
+
+[discovery.lute]
 require = "@lutest_release"
 roots = ["core", "lib", "runtimes", "cli", "utils"]
-ignore = ["vendor", "luau_packages", ".git", "dist/test-tmp"]
-gitignore = true
+
+[discovery.roblox]
+require = "ReplicatedStorage.Packages.lutest"
+roots = ["game"]
+
+[roblox]
+universe_id = 10460283574
+place_id = 87484847405188

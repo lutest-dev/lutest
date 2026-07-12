@@ -5,22 +5,103 @@ const t = require '@lutest_release'
 export type ParsedCommand = {
 	kind: 'help' | 'test' | 'todo' | 'version' | 'error',
 	paths: { string }?,
+	runtime: 'lute' | 'roblox'?,
 	message: string?,
 }
 
-const function collect_paths(args: { string }, start_index: number): { string }
-	const paths = {} :: { string }
+const SUPPORTED_RUNTIMES = {
+	lute = true,
+	roblox = true,
+}
 
-	for index = start_index, #args do
-		table.insert(paths, args[index])
+const function collect_command_arguments(
+	args: { string },
+	start_index: number
+): ({ string }, 'lute' | 'roblox'?)
+	const paths = {} :: { string }
+	local runtime = nil :: ('lute' | 'roblox')?
+
+	local index = start_index
+	while index <= #args do
+		const argument = args[index]
+		local runtime_value = nil :: string?
+
+		if argument == '--runtime' then
+			if index == #args then
+				error(
+					errors.usage_error(
+						'Missing value for `--runtime`.',
+						{
+							command = 'lutest test --runtime',
+							highlight = '--runtime',
+							how_to_fix = 'Use `--runtime lute` or `--runtime roblox`.',
+						}
+					),
+					0
+				)
+			end
+			runtime_value = args[index + 1]
+			index += 1
+		elseif argument:sub(1, 10) == '--runtime=' then
+			runtime_value = argument:sub(11)
+		end
+
+		if runtime_value ~= nil then
+			if runtime ~= nil then
+				error(
+					errors.usage_error(
+						'`--runtime` may only be provided once.',
+						{
+							command = `lutest test {argument}`,
+							highlight = argument,
+							how_to_fix = 'Choose one runtime: `lute` or `roblox`.',
+						}
+					),
+					0
+				)
+			end
+			if not SUPPORTED_RUNTIMES[runtime_value] then
+				error(
+					errors.usage_error(
+						`Unknown runtime '{runtime_value}'.`,
+						{
+							command = `lutest test {argument}`,
+							highlight = runtime_value,
+							how_to_fix = 'Use `--runtime lute` or `--runtime roblox`.',
+						}
+					),
+					0
+				)
+			end
+
+			runtime = runtime_value :: 'lute' | 'roblox'
+			index += 1
+			continue
+		end
+
+		if argument:sub(1, 2) == '--' then
+			error(
+				errors.usage_error(
+					`Unknown option '{argument}'.`,
+					{
+						command = `lutest test {argument}`,
+						highlight = argument,
+						how_to_fix = 'Use `--runtime lute` or `--runtime roblox`.',
+					}
+				),
+				0
+			)
+		end
+
+		table.insert(paths, argument)
+		index += 1
 	end
 
-	return paths
+	return paths, runtime
 end
 
 const function parse_command(args: { string }): ParsedCommand
-	const command = args[1]
-	if command == nil then
+	if #args == 0 then
 		return {
 			kind = 'error',
 			message = errors.usage_error('Missing command.', {
@@ -30,23 +111,35 @@ const function parse_command(args: { string }): ParsedCommand
 		}
 	end
 
-	if command == 'test' then
+	const command = args[1]
+
+	if command == 'test' or command == 'todo' then
+		local paths = nil :: { string }?
+		local runtime = nil :: ('lute' | 'roblox')?
+		local parse_error = nil :: string?
+		const ok = xpcall(function()
+			paths, runtime = collect_command_arguments(args, 2)
+		end, function(err)
+			parse_error = tostring(err)
+			return parse_error
+		end)
+		if not ok then
+			return {
+				kind = 'error',
+				message = parse_error,
+			}
+		end
+
 		return {
-			kind = 'test',
-			paths = collect_paths(args, 2),
+			kind = command,
+			paths = paths,
+			runtime = runtime or 'lute',
 		}
 	end
 
 	if command == 'help' then return {
 		kind = 'help',
 	} end
-
-	if command == 'todo' then
-		return {
-			kind = 'todo',
-			paths = collect_paths(args, 2),
-		}
-	end
 
 	if command == 'version' then return {
 		kind = 'version',
@@ -125,6 +218,31 @@ t.test('should parse test subcommand paths', function()
 	assert(#(command.paths :: { string }) == 2)
 	assert((command.paths :: { string })[1] == 'core')
 	assert((command.paths :: { string })[2] == 'utils')
+	assert(command.runtime == 'lute')
+end)
+
+t.test('should parse an explicit Roblox runtime', function()
+	const command = parse_command {
+		'test',
+		'src',
+		'--runtime=roblox',
+	}
+	assert(command.kind == 'test')
+	assert(command.runtime == 'roblox')
+	assert(#(command.paths :: { string }) == 1)
+end)
+
+t.test('should reject an unknown runtime', function()
+	const command = parse_command {
+		'test',
+		'--runtime',
+		'other',
+	}
+	assert(command.kind == 'error')
+	assert(
+		(command.message :: string):find('Unknown runtime', 1, true)
+			~= nil
+	)
 end)
 
 t.test('should suggest help for unknown commands when closest', function()

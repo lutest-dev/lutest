@@ -18,6 +18,14 @@ const GENERATED_CONFIG = '.tmp-darklua-bundle.generated.json5'
 const DEFAULT_DARKLUA_COMMAND = 'darklua'
 const LUTEST_RELEASE_ALIAS_PLACEHOLDER = '__LUTEST_RELEASE_ALIAS__'
 const RELEASE_STAGING_ROOT = '.tmp/release-staging'
+const EMBEDDED_ASSETS_PATH = 'runtimes/roblox/embedded_assets.luau'
+const EMBEDDED_LIBRARY_FILES = {
+	'lib/init.luau',
+	'lib/context.luau',
+	'lib/registry.luau',
+	'core/types.luau',
+}
+const ROBLOX_BUNDLE_SCRIPT_PATH = 'scripts/build-roblox-bundle.luau'
 const RELEASE_SELF_TEST_METHODS = {
 	test = true,
 	skip = true,
@@ -316,10 +324,54 @@ const function strip_release_self_tests_in_tree(root_dir: string)
 		end
 
 		if entry.type ~= 'file' then continue end
+		if entry.name:sub(-7) == '.d.luau' then continue end
 		if path.extname(entry_path) ~= '.luau' then continue end
 
 		strip_release_self_tests_from_file(entry_path)
 	end
+end
+
+const function write_embedded_roblox_assets(staging_root: string)
+	const lines = {
+		'return {',
+		'\tlibrary = {',
+	} :: { string }
+
+	for _, relative_path in EMBEDDED_LIBRARY_FILES do
+		const source_path = resolve_path(staging_root, relative_path)
+		if not fs.exists(source_path) then
+			error(
+				`missing embedded Roblox library source '{relative_path}'`,
+				0
+			)
+		end
+		table.insert(
+			lines,
+			`\t\t[{string.format('%q', relative_path)}] = {string.format(
+				'%q',
+				fs.readFileToString(source_path)
+			)},`
+		)
+	end
+
+	const bundle_script_path =
+		resolve_path(staging_root, ROBLOX_BUNDLE_SCRIPT_PATH)
+	if not fs.exists(bundle_script_path) then
+		error('missing embedded Roblox bundle script', 0)
+	end
+
+	table.insert(lines, '\t},')
+	table.insert(
+		lines,
+		`\tbundle_script = {string.format(
+			'%q',
+			fs.readFileToString(bundle_script_path)
+		)},`
+	)
+	table.insert(lines, '}')
+
+	const output_path = resolve_path(staging_root, EMBEDDED_ASSETS_PATH)
+	fs.writeStringToFile(output_path, table.concat(lines, '\n'))
 end
 
 const function create_release_staging(project_root: string): string
@@ -327,6 +379,7 @@ const function create_release_staging(project_root: string): string
 	remove_path(staging_root)
 	copy_directory_recursive(project_root, staging_root)
 	strip_release_self_tests_in_tree(staging_root)
+	write_embedded_roblox_assets(staging_root)
 
 	return staging_root
 end

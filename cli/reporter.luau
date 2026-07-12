@@ -321,7 +321,7 @@ end)
 t.test('should format a todo list grouped by suite', function()
 	const output = format_todo_result {
 		{
-			name = 'core/reporter.luau',
+			name = 'cli/reporter.luau',
 			tests = {
 				{
 					name = 'should show nested suite summaries',
@@ -346,7 +346,7 @@ t.test('should format a todo list grouped by suite', function()
 
 	assert(output:find('TODO', 1, true) ~= nil)
 	assert(output:find('3 total', 1, true) ~= nil)
-	assert(output:find('core/reporter.luau', 1, true) ~= nil)
+	assert(output:find('cli/reporter.luau', 1, true) ~= nil)
 	assert(
 		output:find('  * should show nested suite summaries', 1, true)
 			~= nil

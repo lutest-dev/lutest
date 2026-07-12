@@ -11,7 +11,9 @@ Key ideas:
 
 That is closer to how tests are commonly written in [Rust](https://rust-lang.org/) projects.
 
-For Roblox specifically, the long-term plan is integration with [Roblox Open Cloud Luau Execution](https://create.roblox.com/docs/cloud/reference/features/luau-execution), using Luau session tasks to run tests in a headless Studio-style workflow for development and CI.
+For Roblox projects, Lutest can run suites through [Roblox Open Cloud Luau Execution](https://create.roblox.com/docs/cloud/reference/features/luau-execution), using a session task against a configured place.
+
+Roblox projects normally install the `lutest` library in the place for development and editor support. During a remote run, Lutest bundles the CLI's version of that library and overlays it at the configured Roblox require path inside the session task.
 
 ## Status
 

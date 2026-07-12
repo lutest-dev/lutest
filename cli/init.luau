@@ -3,12 +3,18 @@ const errors = require '@core/errors'
 const command = require '@self/command'
 const help = require '@self/help'
 const version = require '@self/version'
-const reporter = require '@core/reporter'
+const reporter = require '@self/reporter'
 const lute = require '@runtimes/lute'
+const roblox = require '@runtimes/roblox'
+
+type TodoTest = {
+	name: string,
+	mode: 'todo',
+}
 
 type TodoSuite = {
 	name: string,
-	tests: { { name: string, mode: 'todo' } },
+	tests: { TodoTest },
 }
 
 const function collect_cli_args(): { string }
@@ -37,12 +43,18 @@ const function collect_todo_suites(paths: { string }): { TodoSuite }
 	local todo_suites = {} :: { TodoSuite }
 
 	for _, suite in lute.collect_suites(lute.discover_files(paths)) do
-		const todo_tests = {} :: { { name: string, mode: 'todo' } }
+		const todo_tests = {} :: { TodoTest }
 
 		for _, test in suite.tests do
 			if test.mode ~= 'todo' then continue end
 
-			table.insert(todo_tests, test)
+			table.insert(
+				todo_tests,
+				{
+					name = test.name,
+					mode = 'todo',
+				} :: TodoTest
+			)
 		end
 
 		if #todo_tests == 0 then continue end
@@ -53,6 +65,33 @@ const function collect_todo_suites(paths: { string }): { TodoSuite }
 		})
 	end
 
+	return todo_suites
+end
+
+const function collect_remote_todo_suites(
+	results: { reporter.TestSuiteResult }
+): { TodoSuite }
+	const todo_suites = {} :: { TodoSuite }
+	for _, suite in results do
+		const tests = {} :: { TodoTest }
+		for _, result in suite.results do
+			if result.kind == 'todo' then
+				table.insert(
+					tests,
+					{
+						name = result.name,
+						mode = 'todo',
+					} :: TodoTest
+				)
+			end
+		end
+		if #tests > 0 then
+			table.insert(todo_suites, {
+				name = suite.name,
+				tests = tests,
+			})
+		end
+	end
 	return todo_suites
 end
 
@@ -82,9 +121,26 @@ const function main()
 	local runtime_error = nil :: string?
 	const ok = xpcall(function()
 		if parsed_command.kind == 'todo' then
+			if parsed_command.runtime == 'roblox' then
+				todo_suites = collect_remote_todo_suites(
+					roblox.run(
+						parsed_command.paths :: { string },
+						'todo'
+					) :: any
+				)
+				return
+			end
 			todo_suites = collect_todo_suites(
 				parsed_command.paths :: { string }
 			)
+			return
+		end
+
+		if parsed_command.runtime == 'roblox' then
+			results = roblox.run(
+				parsed_command.paths :: { string },
+				'test'
+			) :: any
 			return
 		end
 

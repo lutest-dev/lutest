@@ -181,6 +181,7 @@ t.test('should return the created spec from each public helper', function()
 end)
 
 return {
+	set_runtime_register = context.set_register,
 	test = test,
 	skip = skip,
 	only = only,

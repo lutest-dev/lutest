@@ -21,11 +21,29 @@ type ExecutionState = {
 	current_module: string?,
 }
 
+const SELF_REQUIRE_PREFIX = '@self/'
+
 const function wrap_module_source(source: string): string
 	return [[
 local __lutest_require, __lutest_register = ...
 local require = __lutest_require
 ]] .. source
+end
+
+const function resolve_self_require_path(
+	require_path: string,
+	module_path: string
+): string?
+	if require_path:sub(1, #SELF_REQUIRE_PREFIX) ~= SELF_REQUIRE_PREFIX then
+		return nil
+	end
+
+	const relative_path = require_path:sub(#SELF_REQUIRE_PREFIX + 1)
+	if relative_path == '' then return nil end
+
+	return path_utils.normalize_path(
+		path.join(path.dirname(module_path), `{relative_path}.luau`)
+	)
 end
 
 const function is_project_module(
@@ -167,6 +185,19 @@ const function execute_module(
 			)
 		then
 			return embedded_release_api
+		end
+		const self_path =
+			resolve_self_require_path(require_path, module_path)
+		if self_path ~= nil then
+			return execute_module(
+				self_path,
+				suite_module_path,
+				tests,
+				module_cache,
+				loading_modules,
+				execution_state,
+				project_config
+			)
 		end
 
 		const resolved_ok, resolved_result = pcall(function()
@@ -468,6 +499,47 @@ return t.version
 	})
 
 	assert(result == 'custom')
+	assert(#tests == 1)
+	assert(tests[1].name == 'suite test')
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should resolve self imports relative to the current module', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'runner-self-import')
+	const suite_path =
+		path_utils.normalize_path(path.join(temp_cwd, 'suite.luau'))
+	const helper_path =
+		path_utils.normalize_path(path.join(temp_cwd, 'helper.luau'))
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(helper_path, 'return { value = 42 }')
+	fs.writeStringToFile(
+		suite_path,
+		[[
+local helper = require '@self/helper'
+local t = require '@lutest_release'
+
+t.test('suite test', function()
+	assert(helper.value == 42)
+end)
+]]
+	)
+
+	const _, tests = load_module(suite_path, {
+		roots = { '.' },
+		ignore = {},
+		require = '@lutest_release',
+		gitignore = true,
+	})
+
 	assert(#tests == 1)
 	assert(tests[1].name == 'suite test')
 

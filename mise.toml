@@ -1,5 +1,6 @@
 [tools]
 "github:luau-lang/lute" = "1.0.0"
+"github:lune-org/lune" = "0.10.5"
 "github:luau-lang/luau" = "0.727"
 "github:JohnnyMorganz/luau-lsp" = "1.68.1"
 "github:pesde-pkg/pesde" = "0.7.3+registry.0.2.3"

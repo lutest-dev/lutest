@@ -5,6 +5,7 @@ const process = require '@std/process'
 const errors = require '@core/errors'
 const path_utils = require '@lutest/utils/path'
 const embedded_assets = require '@self/embedded_assets'
+const library = require '@self/library'
 const t = require '@lutest_release'
 
 export type BundleFile = {
@@ -21,19 +22,6 @@ type BundlePaths = {
 }
 
 const BUNDLE_DIRECTORY = 'dist/.lutest/roblox'
-const LIBRARY_FILES = {
-	{ source = 'lib/init.luau', relative = '__lutest_lib/lib.luau' },
-	{ source = 'lib/context.luau', relative = '__lutest_lib/context.luau' },
-	{
-		source = 'lib/registry.luau',
-		relative = '__lutest_lib/registry.luau',
-	},
-	{
-		source = 'core/types.luau',
-		relative = '__lutest_lib/core/types.luau',
-	},
-}
-
 const function lune_command(): string
 	const configured = process.env.LUTEST_LUNE_BIN
 	if type(configured) == 'string' and configured ~= '' then
@@ -110,67 +98,13 @@ const function manifest(files: { BundleFile }): string
 	})
 end
 
-const function strip_library_self_tests(source: string): string
-	const test_start = source:find('\nt.test', 1, true)
-	if test_start == nil then return source end
-	const return_start = source:find('\nreturn ', test_start, true)
-	if return_start == nil then
-		runtime_error 'Could not remove embedded Lutest self-tests from the Roblox bundle.'
-	end
-
-	local stripped = source:sub(1, (test_start :: number) - 1)
-		.. source:sub(return_start :: number)
-	stripped = stripped:gsub('const t = require \'@lutest_release\'\n', '')
-	return stripped
-end
-
-const function transform_library_imports(source: string): string
-	local transformed = strip_library_self_tests(source)
-	transformed = transformed:gsub(
-		'require \'@self/registry\'',
-		'require(script.Parent.registry)'
-	)
-	transformed = transformed:gsub(
-		'require \'@self/context\'',
-		'require(script.Parent.context)'
-	)
-	transformed = transformed:gsub(
-		'require \'@core/types\'',
-		'require(script.Parent.core.types)'
-	)
-	return transformed
-end
-
-const function transform_library_source(
-	relative_path: string,
-	source: string
-): string
-	const transformed = transform_library_imports(source)
-	if relative_path ~= '__lutest_lib/core/types.luau' then
-		return transformed
-	end
-	local requireable = transformed:gsub('^return nil', 'return {}')
-	requireable = requireable:gsub('\nreturn nil', '\nreturn {}')
-	return requireable
-end
-
 const function bundled_library_files(): { BundleFile }
 	const files = {} :: { BundleFile }
-	for _, entry in LIBRARY_FILES do
-		const source = embedded_assets.library[entry.source]
-		if type(source) ~= 'string' then
-			runtime_error(
-				`Missing embedded Lutest library source '{entry.source}'.`
-			)
-		end
-
+	for _, entry in library.files 'bundle' do
 		const file: BundleFile = {
-			absolute = entry.source,
-			relative = entry.relative,
-			source = transform_library_source(
-				entry.relative,
-				source
-			),
+			absolute = entry.relative,
+			relative = `__lutest_lib/{entry.relative}`,
+			source = entry.source,
 		}
 		table.insert(files, file)
 	end
@@ -274,29 +208,6 @@ t.test('should encode source files as a Lune bundle manifest', function()
 		},
 	}
 	assert(output:find('src/example.luau', 1, true) ~= nil)
-end)
-
-t.test('should make the embedded type module requireable in Roblox', function()
-	assert(
-		transform_library_source(
-			'__lutest_lib/core/types.luau',
-			'return nil'
-		) == 'return {}'
-	)
-end)
-
-t.test('should transform internal library imports for Roblox', function()
-	const source = transform_library_imports [[
-const types = require '@core/types'
-const registry = require '@self/registry'
-const t = require '@lutest_release'
-t.test('self test', function() end)
-return registry
-]]
-	assert(source:find('require(script.Parent.core.types)', 1, true) ~= nil)
-	assert(source:find('require(script.Parent.registry)', 1, true) ~= nil)
-	assert(source:find('@lutest_release', 1, true) == nil)
-	assert(source:find('self test', 1, true) == nil)
 end)
 
 return {

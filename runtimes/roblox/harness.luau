@@ -56,6 +56,10 @@ local function mount_bundled_library()
 	if entry == nil then
 		error("Lutest library entry module was not present in the deserialized bundle.")
 	end
+	local context = library:FindFirstChild("context")
+	if context == nil then
+		error("Lutest library runtime context was not present in the deserialized bundle.")
+	end
 	entry.Name = segments[#segments]
 	for _, child in library:GetChildren() do
 		local existing = parent:FindFirstChild(child.Name)
@@ -64,9 +68,10 @@ local function mount_bundled_library()
 		end
 		child.Parent = parent
 	end
+	return context
 end
 
-mount_bundled_library()
+local runtime_context = require(mount_bundled_library())
 local test_api = require(]] .. input.require_path .. [[)
 
 local function find_module(relative_path)
@@ -135,13 +140,13 @@ for _, test_path in test_paths do
 	end
 
 	local tests = {}
-	test_api.set_runtime_register(function(spec)
+	runtime_context.set_register(function(spec)
 		table.insert(tests, spec)
 	end)
 	local ok, err = xpcall(function()
 		require(module)
 	end, debug.traceback)
-	test_api.set_runtime_register(nil)
+	runtime_context.set_register(nil)
 	if not ok then
 		table.insert(output.load_failures, {
 			path = test_path,
@@ -170,6 +175,8 @@ t.test('should generate a harness that emits one versioned envelope', function()
 	assert(source:find('tests/example.luau', 1, true) ~= nil)
 	assert(source:find('entry.Name = segments[#segments]', 1, true) ~= nil)
 	assert(source:find('existing:Destroy()', 1, true) ~= nil)
+	assert(source:find('runtime_context.set_register', 1, true) ~= nil)
+	assert(source:find('test_api.set_runtime_register', 1, true) == nil)
 end)
 
 return {

@@ -4,6 +4,7 @@ const t = require '@lutest_release'
 const function format_help(): string
 	return table.concat({
 		tint.cyan.bold 'Usage:',
+		`  {tint.green 'lutest install-package [--output <parent-directory>]'}`,
 		`  {tint.green 'lutest setup'}`,
 		`  {tint.green 'lutest test [paths...] [--runtime lute|roblox]'}`,
 		`  {tint.green 'lutest todo [paths...] [--runtime lute|roblox]'}`,
@@ -12,12 +13,15 @@ const function format_help(): string
 		'',
 		tint.cyan.bold 'Description:',
 		'  Run Lutest subcommands.',
+		'  The install-package command creates a Roblox-ready Lutest source package.',
 		'  The setup command creates an initial lutest.toml configuration.',
 		'  The test command discovers and runs test modules from the given files or directories.',
 		'  Without --runtime, Lutest uses the local lute runtime.',
 		'  Without test paths, uses roots from lutest.toml or defaults to ".".',
 		'',
 		tint.cyan.bold 'Examples:',
+		`  {tint.green 'lutest install-package'}`,
+		`  {tint.green 'lutest install-package --output src/ReplicatedStorage'}`,
 		`  {tint.green 'lutest setup'}`,
 		`  {tint.green 'lutest test'}`,
 		`  {tint.green 'lutest test .'}`,
@@ -39,7 +43,15 @@ t.test('should format help with usage, description, and examples', function()
 	const output = format_help()
 
 	assert(output:find('Usage:', 1, true) ~= nil)
+	assert(output:find('lutest install-package', 1, true) ~= nil)
 	assert(output:find('lutest setup', 1, true) ~= nil)
+	assert(
+		output:find(
+			'The install-package command creates a Roblox-ready Lutest source package.',
+			1,
+			true
+		) ~= nil
+	)
 	assert(
 		output:find(
 			'lutest test [paths...] [--runtime lute|roblox]',

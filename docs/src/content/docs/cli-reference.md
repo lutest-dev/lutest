@@ -7,6 +7,10 @@ The current CLI is compact.
 ## Usage
 
 ```powershell
+lutest install-package [--output <parent-directory>]
+```
+
+```powershell
 lutest setup
 ```
 
@@ -39,6 +43,23 @@ When you do not pass paths to `lutest test` or `lutest todo`, Lutest uses roots 
 ## Setup
 
 `lutest setup` interactively creates an initial `lutest.toml`. It never overwrites an existing configuration and does not create a `.env` file or write API keys.
+
+## Install Roblox package
+
+`lutest install-package` creates a Roblox-ready `lutest/` source directory containing `init.luau` and its internal modules. Move that directory into the game's source tree; its internal imports use Roblox `script` paths, so Luau LSP can follow the package.
+
+Use `--output <parent-directory>` to choose where the command creates `lutest/`. The parent may already exist; the command never overwrites an existing `lutest/` directory.
+
+```powershell
+lutest install-package --output src/ReplicatedStorage
+```
+
+After the directory is represented in the game under `ReplicatedStorage`, require it normally:
+
+```luau
+local ReplicatedStorage = game:GetService 'ReplicatedStorage'
+local t = require(ReplicatedStorage.lutest)
+```
 
 ## Exit behavior
 

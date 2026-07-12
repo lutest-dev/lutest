@@ -180,10 +180,15 @@ t.test('should return the created spec from each public helper', function()
 	assert(todo_spec.mode == 'todo')
 end)
 
-return {
-	set_runtime_register = context.set_register,
+const api = {
 	test = test,
 	skip = skip,
 	only = only,
 	todo = todo,
 }
+
+t.test('should keep the runtime register outside the public API', function()
+	assert((api :: any).set_runtime_register == nil)
+end)
+
+return api

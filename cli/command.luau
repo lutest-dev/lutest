@@ -3,9 +3,16 @@ const suggest = require '@lutest/utils/suggest'
 const t = require '@lutest_release'
 
 export type ParsedCommand = {
-	kind: 'help' | 'setup' | 'test' | 'todo' | 'version' | 'error',
+	kind: 'help'
+		| 'install-package'
+		| 'setup'
+		| 'test'
+		| 'todo'
+		| 'version'
+		| 'error',
 	paths: { string }?,
 	runtime: 'lute' | 'roblox'?,
+	output: string?,
 	message: string?,
 }
 
@@ -106,7 +113,7 @@ const function parse_command(args: { string }): ParsedCommand
 			kind = 'error',
 			message = errors.usage_error('Missing command.', {
 				where = 'lutest',
-				how_to_fix = 'Use `lutest setup` to create a config, `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
+				how_to_fix = 'Use `lutest setup` to create a config, `lutest install-package` to create a Roblox package, `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
 			}),
 		}
 	end
@@ -125,6 +132,42 @@ const function parse_command(args: { string }): ParsedCommand
 						' '
 					)}`,
 					how_to_fix = 'Run `lutest setup` without arguments.',
+				}
+			),
+		}
+	end
+
+	if command == 'install-package' then
+		if #args == 1 then return { kind = 'install-package' } end
+
+		const output = args[2]
+		if #args == 3 and output == '--output' and args[3] ~= '' then
+			return {
+				kind = 'install-package',
+				output = args[3],
+			}
+		end
+		if
+			#args == 2
+			and output:sub(1, 9) == '--output='
+			and #output > 9
+		then
+			return {
+				kind = 'install-package',
+				output = output:sub(10),
+			}
+		end
+
+		return {
+			kind = 'error',
+			message = errors.usage_error(
+				'Invalid `install-package` arguments.',
+				{
+					command = `lutest {table.concat(
+						args,
+						' '
+					)}`,
+					how_to_fix = 'Use `lutest install-package` or `lutest install-package --output <parent-directory>`.',
 				}
 			),
 		}
@@ -164,6 +207,7 @@ const function parse_command(args: { string }): ParsedCommand
 
 	const suggested_command = suggest.closest_match(command, {
 		'help',
+		'install-package',
 		'setup',
 		'test',
 		'todo',
@@ -178,7 +222,7 @@ const function parse_command(args: { string }): ParsedCommand
 			suggestion = if suggested_command == nil
 				then nil
 				else `'{suggested_command}'`,
-			how_to_fix = 'Use `lutest setup` to create a config, `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
+			how_to_fix = 'Use `lutest setup` to create a config, `lutest install-package` to create a Roblox package, `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
 		}),
 	}
 end
@@ -229,6 +273,36 @@ t.test('should reject setup arguments', function()
 			true
 		) ~= nil
 	)
+end)
+
+t.test('should parse an explicit package output directory', function()
+	const command = parse_command {
+		'install-package',
+		'--output',
+		'src/Packages',
+	}
+
+	assert(command.kind == 'install-package')
+	assert(command.output == 'src/Packages')
+end)
+
+t.test('should reject invalid package arguments', function()
+	const command = parse_command { 'install-package', 'lutest' }
+
+	assert(command.kind == 'error')
+	assert(
+		(command.message :: string):find(
+			'Invalid `install-package` arguments.',
+			1,
+			true
+		) ~= nil
+	)
+end)
+
+t.test('should reject an empty package output directory', function()
+	const command = parse_command { 'install-package', '--output=' }
+
+	assert(command.kind == 'error')
 end)
 
 t.test('should parse todo subcommand paths', function()

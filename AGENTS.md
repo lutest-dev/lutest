@@ -10,6 +10,8 @@ When evaluating a release candidate, do not reject the new binary solely because
 
 Do not introduce metatables unless the user explicitly asks for them or has approved that specific use first.
 
+Never use `_G` for runtime state, feature flags, dependency injection, or communication between modules. Pass state explicitly through function arguments or use a scoped module-level abstraction instead.
+
 Do not make project scripts depend on `vendor` checkout layout or uninitialized submodules unless the script is explicitly maintainer-only and that constraint is documented in the script and user-facing docs.
 
 Prefer external tools resolved from the environment, explicit arguments, or dedicated env vars over hardcoded paths inside `vendor`.

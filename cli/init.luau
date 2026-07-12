@@ -2,6 +2,7 @@ const process = require '@std/process'
 const errors = require '@core/errors'
 const command = require '@self/command'
 const help = require '@self/help'
+const setup = require '@self/setup'
 const version = require '@self/version'
 const reporter = require '@self/reporter'
 const todo = require '@self/todo'
@@ -87,6 +88,11 @@ const function main()
 	local todo_suites = nil :: { TodoSuite }?
 	local runtime_error = nil :: string?
 	const ok = xpcall(function()
+		if parsed_command.kind == 'setup' then
+			setup.run()
+			return
+		end
+
 		if parsed_command.kind == 'todo' then
 			if parsed_command.runtime == 'roblox' then
 				const remote_results = roblox.run(
@@ -149,6 +155,8 @@ const function main()
 		reporter.print_todo_result(todo_suites :: { TodoSuite })
 		process.exit(0)
 	end
+
+	if parsed_command.kind == 'setup' then process.exit(0) end
 
 	const resolved_results = results :: { reporter.TestSuiteResult }
 	if #resolved_results == 0 then

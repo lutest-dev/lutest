@@ -4,6 +4,7 @@ const t = require '@lutest_release'
 const function format_help(): string
 	return table.concat({
 		tint.cyan.bold 'Usage:',
+		`  {tint.green 'lutest setup'}`,
 		`  {tint.green 'lutest test [paths...] [--runtime lute|roblox]'}`,
 		`  {tint.green 'lutest todo [paths...] [--runtime lute|roblox]'}`,
 		`  {tint.green 'lutest version'}`,
@@ -11,11 +12,13 @@ const function format_help(): string
 		'',
 		tint.cyan.bold 'Description:',
 		'  Run Lutest subcommands.',
+		'  The setup command creates an initial lutest.toml configuration.',
 		'  The test command discovers and runs test modules from the given files or directories.',
 		'  Without --runtime, Lutest uses the local lute runtime.',
 		'  Without test paths, uses roots from lutest.toml or defaults to ".".',
 		'',
 		tint.cyan.bold 'Examples:',
+		`  {tint.green 'lutest setup'}`,
 		`  {tint.green 'lutest test'}`,
 		`  {tint.green 'lutest test .'}`,
 		`  {tint.green 'lutest test src'}`,
@@ -36,9 +39,17 @@ t.test('should format help with usage, description, and examples', function()
 	const output = format_help()
 
 	assert(output:find('Usage:', 1, true) ~= nil)
+	assert(output:find('lutest setup', 1, true) ~= nil)
 	assert(
 		output:find(
 			'lutest test [paths...] [--runtime lute|roblox]',
+			1,
+			true
+		) ~= nil
+	)
+	assert(
+		output:find(
+			'The setup command creates an initial lutest.toml configuration.',
 			1,
 			true
 		) ~= nil

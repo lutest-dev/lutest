@@ -3,7 +3,7 @@ const suggest = require '@lutest/utils/suggest'
 const t = require '@lutest_release'
 
 export type ParsedCommand = {
-	kind: 'help' | 'test' | 'todo' | 'version' | 'error',
+	kind: 'help' | 'setup' | 'test' | 'todo' | 'version' | 'error',
 	paths: { string }?,
 	runtime: 'lute' | 'roblox'?,
 	message: string?,
@@ -106,12 +106,29 @@ const function parse_command(args: { string }): ParsedCommand
 			kind = 'error',
 			message = errors.usage_error('Missing command.', {
 				where = 'lutest',
-				how_to_fix = 'Use `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
+				how_to_fix = 'Use `lutest setup` to create a config, `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
 			}),
 		}
 	end
 
 	const command = args[1]
+
+	if command == 'setup' then
+		if #args == 1 then return { kind = 'setup' } end
+		return {
+			kind = 'error',
+			message = errors.usage_error(
+				'`setup` does not accept arguments.',
+				{
+					command = `lutest {table.concat(
+						args,
+						' '
+					)}`,
+					how_to_fix = 'Run `lutest setup` without arguments.',
+				}
+			),
+		}
+	end
 
 	if command == 'test' or command == 'todo' then
 		local paths = nil :: { string }?
@@ -147,6 +164,7 @@ const function parse_command(args: { string }): ParsedCommand
 
 	const suggested_command = suggest.closest_match(command, {
 		'help',
+		'setup',
 		'test',
 		'todo',
 		'version',
@@ -160,7 +178,7 @@ const function parse_command(args: { string }): ParsedCommand
 			suggestion = if suggested_command == nil
 				then nil
 				else `'{suggested_command}'`,
-			how_to_fix = 'Use `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
+			how_to_fix = 'Use `lutest setup` to create a config, `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
 		}),
 	}
 end
@@ -192,6 +210,25 @@ t.test('should parse version subcommand as version', function()
 	}
 
 	assert(command.kind == 'version')
+end)
+
+t.test('should parse setup without arguments', function()
+	const command = parse_command { 'setup' }
+
+	assert(command.kind == 'setup')
+end)
+
+t.test('should reject setup arguments', function()
+	const command = parse_command { 'setup', 'roblox' }
+
+	assert(command.kind == 'error')
+	assert(
+		(command.message :: string):find(
+			'`setup` does not accept arguments.',
+			1,
+			true
+		) ~= nil
+	)
 end)
 
 t.test('should parse todo subcommand paths', function()

@@ -7,6 +7,10 @@ The current CLI is compact.
 ## Usage
 
 ```powershell
+lutest setup
+```
+
+```powershell
 lutest test [paths...] [--runtime lute|roblox]
 ```
 
@@ -31,6 +35,10 @@ lutest help
 When you pass paths to `lutest test` or `lutest todo`, Lutest uses them as discovery inputs. Without `--runtime`, both commands use `lute`.
 
 When you do not pass paths to `lutest test` or `lutest todo`, Lutest uses roots for the selected runtime from `lutest.toml`, or `.` for the local runtime when no config is present.
+
+## Setup
+
+`lutest setup` interactively creates an initial `lutest.toml`. It never overwrites an existing configuration and does not create a `.env` file or write API keys.
 
 ## Exit behavior
 

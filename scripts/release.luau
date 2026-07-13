@@ -2,7 +2,6 @@ const fs = require '@std/fs'
 const process = require '@std/process'
 const path = require '@std/path'
 const system = require '@std/system'
-const luau = require '@std/luau'
 const printer = require '@std/syntax/printer'
 const query = require '@std/syntax/query'
 const syntax = require '@std/syntax'
@@ -84,20 +83,6 @@ const function resolve_darklua_command(): string
 		return from_env
 	end
 	return DEFAULT_DARKLUA_COMMAND
-end
-
-const function load_project_aliases(cwd: string): { [string]: unknown }
-	const config_path = resolve_path(cwd, '.config.luau')
-	const source = fs.readFileToString(config_path)
-	const chunk = luau.load(luau.compile(source), config_path, {})
-	const result = chunk()
-	const aliases = ((result :: any).luau :: any).aliases
-
-	if type(aliases) ~= 'table' then
-		error(`missing luau.aliases in '{config_path}'`, 0)
-	end
-
-	return aliases
 end
 
 const function path_within_root(root: string, absolute_path: string): string?
@@ -400,20 +385,11 @@ const function create_darklua_config(cwd: string, config_path: string): string
 		error(`missing darklua config '{config_path}'`, 0)
 	end
 
-	const aliases = load_project_aliases(cwd)
-	const lutest_release_alias = aliases.lutest_release
-	if type(lutest_release_alias) ~= 'string' then
-		error(
-			`missing string alias 'lutest_release' in '.config.luau'`,
-			0
-		)
-	end
-
 	const config_source = fs.readFileToString(config_path)
 	const generated_source = string.gsub(
 		config_source,
 		LUTEST_RELEASE_ALIAS_PLACEHOLDER,
-		to_darklua_alias(lutest_release_alias)
+		to_darklua_alias('lib')
 	)
 	const generated_config_path = resolve_path(cwd, GENERATED_CONFIG)
 

@@ -1,6 +1,6 @@
 const t = require '@lutest_release'
 
-const VERSION = '0.4.0'
+const VERSION = '0.5.0'
 
 const function format_version(): string
 	return `lutest {VERSION}`
@@ -11,7 +11,7 @@ const function print_version()
 end
 
 t.test('should format version output', function()
-	assert(format_version() == 'lutest 0.4.0')
+	assert(format_version() == 'lutest 0.5.0')
 end)
 
 return {

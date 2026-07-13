@@ -43,4 +43,4 @@ jobs:
           commit: "chore(release): prepare next release"
           title: "chore(release): prepare next release"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}

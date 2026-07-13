@@ -78,6 +78,18 @@ const function collect_todo_suites(
 	return todo_suites
 end
 
+const function discover_dry_run_files(
+	paths: { string },
+	runtime: 'lute' | 'roblox',
+	config_path: string?
+): { string }
+	if runtime == 'roblox' then
+		return roblox.discover_files(paths, config_path)
+	end
+
+	return lute.discover_files(paths, config_path)
+end
+
 const function main()
 	const args = collect_cli_args()
 	const parsed_command = command.parse_command(args)
@@ -101,6 +113,8 @@ const function main()
 
 	local results = nil :: { reporter.TestSuiteResult }?
 	local todo_suites = nil :: { TodoSuite }?
+	local dry_run_files = nil :: { string }?
+	local dry_run_runtime = nil :: ('lute' | 'roblox')?
 	local runtime_error = nil :: string?
 	const ok = xpcall(function()
 		if parsed_command.kind == 'install-package' then
@@ -113,13 +127,23 @@ const function main()
 			return
 		end
 
-		if parsed_command.kind == 'todo' then
-			const runtime = parsed_command.runtime
-				or config.default_runtime(
-					config.load_project_config(
-						parsed_command.config_path
-					)
+		const runtime = parsed_command.runtime
+			or config.default_runtime(
+				config.load_project_config(
+					parsed_command.config_path
 				)
+			)
+		if parsed_command.dry_run then
+			dry_run_files = discover_dry_run_files(
+				parsed_command.paths :: { string },
+				runtime,
+				parsed_command.config_path
+			)
+			dry_run_runtime = runtime
+			return
+		end
+
+		if parsed_command.kind == 'todo' then
 			if runtime == 'roblox' then
 				const remote_results = roblox.run(
 					parsed_command.paths :: { string },
@@ -144,12 +168,6 @@ const function main()
 			return
 		end
 
-		const runtime = parsed_command.runtime
-			or config.default_runtime(
-				config.load_project_config(
-					parsed_command.config_path
-				)
-			)
 		if runtime == 'roblox' then
 			results = roblox.run(
 				parsed_command.paths :: { string },
@@ -186,6 +204,15 @@ const function main()
 		end
 
 		process.exit(1)
+	end
+
+	if dry_run_files ~= nil then
+		reporter.print_dry_run(
+			dry_run_runtime :: 'lute' | 'roblox',
+			parsed_command.config_path,
+			dry_run_files
+		)
+		process.exit(if #dry_run_files == 0 then 1 else 0)
 	end
 
 	if parsed_command.kind == 'todo' then

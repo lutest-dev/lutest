@@ -1,4 +1,5 @@
 const types = require '@core/types'
+const path_utils = require '@lutest/utils/path'
 const ui = require '@lutest/utils/ui'
 const t = require '@lutest_release'
 
@@ -209,6 +210,49 @@ end
 
 const function print_todo_result(todo_suites: { TodoSuite })
 	print(format_todo_result(todo_suites))
+end
+
+const function format_dry_run(
+	runtime: 'lute' | 'roblox',
+	config_path: string?,
+	paths: { string }
+): string
+	const runtime_name = if runtime == 'roblox' then 'Roblox' else 'Lute'
+	local lines = {
+		ui.section(`{runtime_name} test plan`),
+	} :: { string }
+
+	if config_path ~= nil then
+		table.insert(lines, '')
+		table.insert(lines, `  {ui.muted 'config'}  {config_path}`)
+	end
+
+	table.insert(lines, `  {ui.muted 'files'}   {#paths}`)
+	for _, filepath in paths do
+		table.insert(lines, `  {path_utils.relative_to_cwd(filepath)}`)
+	end
+
+	table.insert(lines, '')
+	if #paths == 0 then
+		table.insert(lines, ui.warned 'No test files discovered.')
+	else
+		table.insert(
+			lines,
+			ui.passed(
+				`{#paths} {test_label(#paths)} discovered. Nothing was executed.`
+			)
+		)
+	end
+
+	return table.concat(lines, '\n')
+end
+
+const function print_dry_run(
+	runtime: 'lute' | 'roblox',
+	config_path: string?,
+	paths: { string }
+)
+	print(format_dry_run(runtime, config_path, paths))
 end
 
 t.test('should format aggregated run results in one line', function()
@@ -432,10 +476,24 @@ t.test('should format an empty todo list compactly', function()
 	assert(output:find('+ No todo tests', 1, true) ~= nil)
 end)
 
+t.test('should format a dry run without execution claims', function()
+	const output = format_dry_run('roblox', 'games/arena/lutest.toml', {
+		path_utils.resolve_from_cwd 'game/shared/inventory.luau',
+	})
+
+	assert(output:find('Roblox test plan', 1, true) ~= nil)
+	assert(output:find('games/arena/lutest.toml', 1, true) ~= nil)
+	assert(output:find('game/shared/inventory.luau', 1, true) ~= nil)
+	assert(output:find('1 test discovered.', 1, true) ~= nil)
+	assert(output:find('Nothing was executed.', 1, true) ~= nil)
+end)
+
 return {
 	collect_run_result = collect_run_result,
+	format_dry_run = format_dry_run,
 	format_run_result = format_run_result,
 	format_todo_result = format_todo_result,
+	print_dry_run = print_dry_run,
 	print_run_result = print_run_result,
 	print_todo_result = print_todo_result,
 }

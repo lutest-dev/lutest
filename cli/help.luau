@@ -7,8 +7,8 @@ const function format_help(): string
 		ui.muted 'Co-located tests for Luau modules.',
 		'',
 		ui.section 'Commands',
-		'  test [paths...] [--runtime lute|roblox] [--config <path>]',
-		'  todo [paths...] [--runtime lute|roblox] [--config <path>]',
+		'  test [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',
+		'  todo [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',
 		'  setup',
 		'  install-package [--output <parent-directory>]',
 		'  version',
@@ -34,14 +34,14 @@ t.test('should format concise help with usage and examples', function()
 	assert(output:find('setup', 1, true) ~= nil)
 	assert(
 		output:find(
-			'test [paths...] [--runtime lute|roblox] [--config <path>]',
+			'test [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',
 			1,
 			true
 		) ~= nil
 	)
 	assert(
 		output:find(
-			'todo [paths...] [--runtime lute|roblox] [--config <path>]',
+			'todo [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',
 			1,
 			true
 		) ~= nil

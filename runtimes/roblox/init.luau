@@ -47,6 +47,14 @@ const function load_failures_as_results(
 	return results
 end
 
+const function discover_files(
+	paths: { string },
+	config_path: string?
+): { string }
+	const discovery_config = (config.load_roblox_config(config_path))
+	return discovery.discover_suites(paths, discovery_config)
+end
+
 const function run(
 	paths: { string },
 	mode: 'test' | 'todo',
@@ -112,5 +120,6 @@ t.test('should map a suite load failure to a failed reporter result', function()
 end)
 
 return {
+	discover_files = discover_files,
 	run = run,
 }

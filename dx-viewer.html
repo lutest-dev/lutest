@@ -251,8 +251,8 @@
               <pre><span class="accent strong">Lutest</span> <span class="muted">Co-located tests for Luau modules.</span>
 
 <span class="accent strong">&gt; Commands</span>
-  test [paths...] [--runtime lute|roblox] [--config &lt;path&gt;]
-  todo [paths...] [--runtime lute|roblox] [--config &lt;path&gt;]
+  test [paths...] [--runtime lute|roblox] [--config &lt;path&gt;] [--dry-run]
+  todo [paths...] [--runtime lute|roblox] [--config &lt;path&gt;] [--dry-run]
   setup
   install-package [--output &lt;parent-directory&gt;]
   version
@@ -263,6 +263,18 @@
             <article>
               <header><h3>Successful run</h3><p>A sentence, not a status banner</p></header>
               <pre><span class="success strong">+ 6 tests passed</span></pre>
+            </article>
+            <article>
+              <header><h3>Dry run</h3><p>Discovery without loading or executing tests</p></header>
+              <pre><span class="accent strong">&gt; Roblox test plan</span>
+
+  <span class="muted">config</span>  games/arena/lutest.toml
+  <span class="muted">files</span>   2
+
+  game/arena/src/shared/inventory.luau
+  game/arena/src/server/leaderstats.luau
+
+<span class="success strong">+ 2 test files discovered. Nothing was executed.</span></pre>
             </article>
             <article>
               <header><h3>Todo list</h3><p>Intentional work has its own state</p></header>

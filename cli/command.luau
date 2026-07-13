@@ -13,6 +13,7 @@ export type ParsedCommand = {
 	paths: { string }?,
 	runtime: 'lute' | 'roblox'?,
 	config_path: string?,
+	dry_run: boolean?,
 	output: string?,
 	message: string?,
 }
@@ -28,15 +29,30 @@ const function collect_command_arguments(
 ): (
 	{ string },
 	'lute' | 'roblox'?,
-	string?
+	string?,
+	boolean
 )
 	const paths = {} :: { string }
 	local runtime = nil :: ('lute' | 'roblox')?
 	local config_path = nil :: string?
+	local dry_run = false
 
 	local index = start_index
 	while index <= #args do
 		const argument = args[index]
+		if argument == '--dry-run' then
+			if dry_run then
+				error(
+					errors.usage_error '`--dry-run` may only be provided once.',
+					0
+				)
+			end
+
+			dry_run = true
+			index += 1
+			continue
+		end
+
 		local runtime_value = nil :: string?
 		local config_value = nil :: string?
 
@@ -117,7 +133,7 @@ const function collect_command_arguments(
 		index += 1
 	end
 
-	return paths, runtime, config_path
+	return paths, runtime, config_path, dry_run
 end
 
 const function parse_command(args: { string }): ParsedCommand
@@ -169,9 +185,10 @@ const function parse_command(args: { string }): ParsedCommand
 		local paths = nil :: { string }?
 		local runtime = nil :: ('lute' | 'roblox')?
 		local config_path = nil :: string?
+		local dry_run = false
 		local parse_error = nil :: string?
 		const ok = xpcall(function()
-			paths, runtime, config_path =
+			paths, runtime, config_path, dry_run =
 				collect_command_arguments(args, 2)
 		end, function(err)
 			parse_error = tostring(err)
@@ -189,6 +206,7 @@ const function parse_command(args: { string }): ParsedCommand
 			paths = paths,
 			runtime = runtime,
 			config_path = config_path,
+			dry_run = dry_run,
 		}
 	end
 
@@ -348,6 +366,37 @@ t.test('should parse a config path for test commands', function()
 	assert(command.kind == 'todo')
 	assert(command.config_path == 'configs/roblox.toml')
 	assert(#(command.paths :: { string }) == 1)
+end)
+
+t.test('should parse a dry run for test commands', function()
+	const command = parse_command {
+		'test',
+		'game',
+		'--runtime',
+		'roblox',
+		'--dry-run',
+	}
+
+	assert(command.kind == 'test')
+	assert(command.runtime == 'roblox')
+	assert(command.dry_run == true)
+end)
+
+t.test('should reject repeated dry run options', function()
+	const command = parse_command {
+		'todo',
+		'--dry-run',
+		'--dry-run',
+	}
+
+	assert(command.kind == 'error')
+	assert(
+		(command.message :: string):find(
+			'`--dry-run` may only be provided once.',
+			1,
+			true
+		) ~= nil
+	)
 end)
 
 t.test('should reject a missing config path', function()

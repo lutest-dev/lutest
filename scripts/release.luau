@@ -389,7 +389,7 @@ const function create_darklua_config(cwd: string, config_path: string): string
 	const generated_source = string.gsub(
 		config_source,
 		LUTEST_RELEASE_ALIAS_PLACEHOLDER,
-		to_darklua_alias('lib')
+		to_darklua_alias 'lib'
 	)
 	const generated_config_path = resolve_path(cwd, GENERATED_CONFIG)
 

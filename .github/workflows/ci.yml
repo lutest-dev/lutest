@@ -76,3 +76,44 @@ jobs:
 
       - name: Run tests
         run: .tmp/ci-bin/lutest test
+
+      - name: Upload CI binary
+        uses: actions/upload-artifact@v5
+        with:
+          name: lutest-ci-linux-x64
+          path: .tmp/ci-bin/lutest
+          if-no-files-found: error
+          retention-days: 1
+
+  roblox:
+    needs: quality
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup mise
+        uses: jdx/mise-action@v4
+        with:
+          install: false
+
+      - name: Download CI binary
+        uses: actions/download-artifact@v5
+        with:
+          name: lutest-ci-linux-x64
+          path: .tmp/ci-bin
+
+      - name: Run Roblox tests
+        env:
+          ROBLOX_OPEN_CLOUD_API_KEY: ${{ secrets.ROBLOX_OPEN_CLOUD_API_KEY }}
+        run: |
+          chmod +x .tmp/ci-bin/lutest
+          mise --no-config exec github:lune-org/lune@0.10.5 \
+            --command ".tmp/ci-bin/lutest test game --runtime roblox"

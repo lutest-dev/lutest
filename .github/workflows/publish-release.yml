@@ -55,6 +55,17 @@ jobs:
           mv .tmp/release-assets/lutest-macos-arm64/lutest \
             "dist/lutest-v${VERSION}-macos-arm64"
 
+      - name: Extract release notes from CHANGELOG.md
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        shell: bash
+        run: |
+          awk -v ver="$VERSION" '
+            $0 == "## " ver { found = 1 }
+            found { print }
+            found && /^## / && $0 != "## " ver { exit }
+          ' CHANGELOG.md > .tmp/release-notes.md
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -66,4 +77,4 @@ jobs:
             dist/lutest-v${VERSION}-linux-x64 \
             dist/lutest-v${VERSION}-macos-arm64 \
             --title "v${VERSION}" \
-            --generate-notes
+            --notes-file .tmp/release-notes.md

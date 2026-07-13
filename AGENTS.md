@@ -15,3 +15,20 @@ Never use `_G` for runtime state, feature flags, dependency injection, or commun
 Do not make project scripts depend on `vendor` checkout layout or uninitialized submodules unless the script is explicitly maintainer-only and that constraint is documented in the script and user-facing docs.
 
 Prefer external tools resolved from the environment, explicit arguments, or dedicated env vars over hardcoded paths inside `vendor`.
+
+## Pull requests and releases
+
+Work on a `type/slug` branch and merge changes through a pull request. Do not
+commit or push directly to `main` unless the user explicitly overrides this
+rule.
+
+Every pull request must make an explicit release decision:
+
+- Add a Changeset for a user-visible change that should appear in a release.
+- Mark the pull request as `no-release` when it has no release impact, such as
+  internal refactors, CI, tests, or tooling changes.
+
+Changesets accumulate after merge and the Release PR is generated or updated by
+automation. Do not manually create or edit a Release PR unless the user asks.
+Merging a regular pull request does not publish a release. Publishing from the
+Release PR is intentionally not automated yet.

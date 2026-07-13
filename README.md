@@ -1,26 +1,32 @@
-# Lutest
+Lutest [![CI](https://github.com/lutest-dev/lutest/actions/workflows/ci.yml/badge.svg)](https://github.com/lutest-dev/lutest/actions/workflows/ci.yml)
+====
 
-Lutest is a test runner for Luau code, with a focus on `lute` and Roblox runtimes.
+Lutest is a test runner for Luau modules, with local Lute and remote Roblox
+runtimes.
 
-Key ideas:
+It lets modules remain normal Luau modules while tests can live next to the
+code they exercise.
 
-- test kind and runtime should stay separate
-- tests should be able to live close to the module under test
-- internal or non-exported behavior should still be testable
-- public-only APIs or dependency injection should not be required just to make testing possible
+[Get started](https://lutest-dev.github.io/site/) ·
+[Documentation](https://lutest-dev.github.io/site/) ·
+[Releases](https://github.com/lutest-dev/lutest/releases)
 
-That is closer to how tests are commonly written in [Rust](https://rust-lang.org/) projects.
+# Runtimes
 
-For Roblox projects, Lutest can run suites through [Roblox Open Cloud Luau Execution](https://create.roblox.com/docs/cloud/reference/features/luau-execution), using a session task against a configured place.
+- **Lute** runs tests locally.
+- **Roblox** runs tests remotely through
+  [Open Cloud Luau Execution](https://create.roblox.com/docs/cloud/reference/features/luau-execution).
 
-Roblox projects normally install the `lutest` library in the place for development and editor support. During a remote run, Lutest bundles the CLI's version of that library and overlays it at the configured Roblox require path inside the session task.
+# Repository
 
-## Status
+This repository contains the Lutest CLI, test library, and runtime
+implementations. For installation, configuration, usage, and Roblox setup,
+see the [documentation](https://lutest-dev.github.io/site/).
 
-- Lutest will remain under constant change while the project is still in its early stages.
-- Expect experimental work, and do not treat releases as final or stable yet.
-- Breaking changes may happen in any release for now.
+# Status
 
-## License
+Lutest is early-stage software. Its public API and configuration may change.
+
+# License
 
 Lutest is distributed under the terms of the [MIT License](LICENSE).

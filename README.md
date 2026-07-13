@@ -7,8 +7,8 @@ runtimes.
 It lets modules remain normal Luau modules while tests can live next to the
 code they exercise.
 
-[Get started](https://lutest-dev.github.io/site/) ·
 [Documentation](https://lutest-dev.github.io/site/) ·
+[Contributing](CONTRIBUTING.md) ·
 [Releases](https://github.com/lutest-dev/lutest/releases)
 
 # Runtimes

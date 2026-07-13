@@ -1,6 +1,7 @@
 const io = require '@std/io'
 const task = require '@std/task'
 const tty = require '@lutest/utils/tty'
+const ui = require '@lutest/utils/ui'
 const t = require '@lutest_release'
 
 type Output = (message: string) -> ()
@@ -9,7 +10,7 @@ local FRAMES =
 	{ '⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏' }
 
 const function plain_message(stage: string): string
-	return `[lutest] Roblox: {stage}`
+	return `> Roblox - {stage}`
 end
 
 const function create(is_tty: boolean, output: Output?)
@@ -23,7 +24,8 @@ const function create(is_tty: boolean, output: Output?)
 	local current_stage = ''
 
 	const function render_spinner()
-		const message = `{FRAMES[frame]} {current_stage}`
+		const message =
+			`{ui.accent(FRAMES[frame])} Roblox {ui.muted '-'} {current_stage}`
 		frame = if frame == #FRAMES then 1 else frame + 1
 		const width = math.max(previous_width, #message)
 		io.write(`\r{message}{string.rep(' ', width - #message)}`)
@@ -78,8 +80,8 @@ t.test('should print stable progress lines without a TTY', function()
 	const progress = create(false, function(message)
 		output = message
 	end)
-	progress.update 'Preparing Roblox test bundle'
-	assert(output == '[lutest] Roblox: Preparing Roblox test bundle')
+	progress.update 'Preparing bundle'
+	assert(output == '> Roblox - Preparing bundle')
 end)
 
 return {

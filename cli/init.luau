@@ -144,10 +144,10 @@ const function main()
 		else
 			print_lutest_error(
 				errors.internal_error(
-					'The runner crashed while preparing test suites.',
+					'Lutest stopped unexpectedly',
 					{
 						where = 'runner',
-						how_to_fix = 'This looks like a Lutest bug. Please report it with the command, project config, and stack trace below.',
+						how_to_fix = 'Report this with the details below.',
 						details = message,
 					}
 				)
@@ -167,19 +167,9 @@ const function main()
 
 	const resolved_results = results :: { reporter.TestSuiteResult }
 	if #resolved_results == 0 then
-		print_lutest_error(
-			errors.usage_error('No test files were discovered.', {
-				where = if #(
-							parsed_command.paths :: { string }
-						) > 0
-					then `lutest test {table.concat(
-						parsed_command.paths :: { string },
-						' '
-					)}`
-					else 'lutest test',
-				how_to_fix = 'Pass an existing test file or directory, or update `discovery.roots` in `lutest.toml`.',
-			})
-		)
+		print_lutest_error(errors.usage_error('No test files found', {
+			how_to_fix = 'Add a test file or update discovery.roots in lutest.toml.',
+		}))
 		process.exit(1)
 	end
 

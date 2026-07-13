@@ -38,13 +38,9 @@ const function load(cwd: string?): string
 	end
 
 	error(
-		errors.configuration_error(
-			'Missing ROBLOX_OPEN_CLOUD_API_KEY.',
-			{
-				where = path_utils.normalize_path(dotenv_path),
-				how_to_fix = 'Set ROBLOX_OPEN_CLOUD_API_KEY in the process environment or in the project .env file.',
-			}
-		),
+		errors.configuration_error('Roblox API key missing', {
+			how_to_fix = 'Set ROBLOX_OPEN_CLOUD_API_KEY in .env or your environment.',
+		}),
 		0
 	)
 end

@@ -6,6 +6,7 @@ const config = require '@runtimes/lute/config'
 const discovery = require '@runtimes/lute/discovery'
 const t = require '@lutest_release'
 const path_utils = require '@lutest/utils/path'
+const ui = require '@lutest/utils/ui'
 const fs = require '@std/fs'
 const luau = require '@std/luau'
 const path = require '@std/path'
@@ -55,15 +56,11 @@ const function is_project_module(
 end
 
 const function format_load_error(module_path: string, err: unknown): string
-	return errors.runtime_error(
-		`Could not load test file '{path_utils.relative_to_cwd(
-			module_path
-		)}'.`,
-		{
-			where = path_utils.relative_to_cwd(module_path),
-			details = debug.traceback(tostring(err), 2),
-		}
-	)
+	return errors.runtime_error('Test file could not load', {
+		where = path_utils.relative_to_cwd(module_path),
+		how_to_fix = 'Fix the error in this test file and run again.',
+		details = debug.traceback(tostring(err), 2),
+	})
 end
 
 const function should_use_embedded_release_api(
@@ -290,12 +287,13 @@ const function load_module(
 	return result, tests
 end
 
-const function warn_missing_tests(
-	module_path: string,
-	project_config: LutestConfig
-)
+const function warn_missing_tests(module_path: string)
 	print(
-		`warning: module '{path_utils.relative_to_cwd(module_path)}' depends on {project_config.require} but registered no tests`
+		ui.warned(
+			`No tests registered in '{path_utils.relative_to_cwd(
+				module_path
+			)}'.`
+		)
 	)
 end
 
@@ -316,7 +314,7 @@ const function collect_suites(paths: { string }): { TestSuite }
 		const _, tests =
 			load_module(resolved_module_path, project_config)
 		if #tests == 0 then
-			warn_missing_tests(resolved_module_path, project_config)
+			warn_missing_tests(resolved_module_path)
 			continue
 		end
 
@@ -341,7 +339,7 @@ const function run_file(module_path: string): { TestSuiteResult }
 	const resolved_module_path = path_utils.resolve_from_cwd(module_path)
 	const _, tests = load_module(resolved_module_path, project_config)
 	if #tests == 0 then
-		warn_missing_tests(resolved_module_path, project_config)
+		warn_missing_tests(resolved_module_path)
 		return {}
 	end
 
@@ -671,15 +669,9 @@ error("boom from module")
 	assert(ok == false)
 	assert(message ~= nil)
 	message = errors.strip_ansi(errors.display_error(message))
-	assert(message:find('RuntimeError:', 1, true) ~= nil)
-	assert(
-		message:find(
-			'Could not load test file \'dist/test-tmp/runner-load-error/suite.luau\'.',
-			1,
-			true
-		) ~= nil
-	)
-	assert(message:find('Details:', 1, true) ~= nil)
+	assert(message:find('RuntimeError:', 1, true) == nil)
+	assert(message:find('Test file could not load', 1, true) ~= nil)
+	assert(message:find('> Details', 1, true) ~= nil)
 	assert(message:find('boom from module', 1, true) ~= nil)
 
 	fs.removeDirectory(temp_cwd, { recursive = true })

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lutest Terminal DX"
+  short_description: "Design consistent, accessible Lutest terminal UX."
+  default_prompt: "Use $lutest-terminal-dx to improve Lutest terminal output."

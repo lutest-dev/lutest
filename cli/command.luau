@@ -36,14 +36,7 @@ const function collect_command_arguments(
 		if argument == '--runtime' then
 			if index == #args then
 				error(
-					errors.usage_error(
-						'Missing value for `--runtime`.',
-						{
-							command = 'lutest test --runtime',
-							highlight = '--runtime',
-							how_to_fix = 'Use `--runtime lute` or `--runtime roblox`.',
-						}
-					),
+					errors.usage_error 'Missing value for `--runtime`.',
 					0
 				)
 			end
@@ -56,26 +49,14 @@ const function collect_command_arguments(
 		if runtime_value ~= nil then
 			if runtime ~= nil then
 				error(
-					errors.usage_error(
-						'`--runtime` may only be provided once.',
-						{
-							command = `lutest test {argument}`,
-							highlight = argument,
-							how_to_fix = 'Choose one runtime: `lute` or `roblox`.',
-						}
-					),
+					errors.usage_error '`--runtime` may only be provided once.',
 					0
 				)
 			end
 			if not SUPPORTED_RUNTIMES[runtime_value] then
 				error(
 					errors.usage_error(
-						`Unknown runtime '{runtime_value}'.`,
-						{
-							command = `lutest test {argument}`,
-							highlight = runtime_value,
-							how_to_fix = 'Use `--runtime lute` or `--runtime roblox`.',
-						}
+						`Unknown runtime '{runtime_value}'.`
 					),
 					0
 				)
@@ -89,12 +70,7 @@ const function collect_command_arguments(
 		if argument:sub(1, 2) == '--' then
 			error(
 				errors.usage_error(
-					`Unknown option '{argument}'.`,
-					{
-						command = `lutest test {argument}`,
-						highlight = argument,
-						how_to_fix = 'Use `--runtime lute` or `--runtime roblox`.',
-					}
+					`Unknown option '{argument}'.`
 				),
 				0
 			)
@@ -111,10 +87,7 @@ const function parse_command(args: { string }): ParsedCommand
 	if #args == 0 then
 		return {
 			kind = 'error',
-			message = errors.usage_error('Missing command.', {
-				where = 'lutest',
-				how_to_fix = 'Use `lutest setup` to create a config, `lutest install-package` to create a Roblox package, `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
-			}),
+			message = errors.usage_error 'Missing command.',
 		}
 	end
 
@@ -124,16 +97,7 @@ const function parse_command(args: { string }): ParsedCommand
 		if #args == 1 then return { kind = 'setup' } end
 		return {
 			kind = 'error',
-			message = errors.usage_error(
-				'`setup` does not accept arguments.',
-				{
-					command = `lutest {table.concat(
-						args,
-						' '
-					)}`,
-					how_to_fix = 'Run `lutest setup` without arguments.',
-				}
-			),
+			message = errors.usage_error '`setup` does not accept arguments.',
 		}
 	end
 
@@ -160,16 +124,7 @@ const function parse_command(args: { string }): ParsedCommand
 
 		return {
 			kind = 'error',
-			message = errors.usage_error(
-				'Invalid `install-package` arguments.',
-				{
-					command = `lutest {table.concat(
-						args,
-						' '
-					)}`,
-					how_to_fix = 'Use `lutest install-package` or `lutest install-package --output <parent-directory>`.',
-				}
-			),
+			message = errors.usage_error 'Invalid `install-package` arguments.',
 		}
 	end
 
@@ -222,7 +177,6 @@ const function parse_command(args: { string }): ParsedCommand
 			suggestion = if suggested_command == nil
 				then nil
 				else `'{suggested_command}'`,
-			how_to_fix = 'Use `lutest setup` to create a config, `lutest install-package` to create a Roblox package, `lutest test [paths...]` to run tests, `lutest todo [paths...]` to list todo test cases, `lutest version` to see the current version, or `lutest help` to see available commands.',
 		}),
 	}
 end

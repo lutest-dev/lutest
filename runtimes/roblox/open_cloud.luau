@@ -26,14 +26,14 @@ export type CompletedTask = {
 const BASE_URL = 'https://apis.roblox.com/cloud/v2'
 
 const function api_error(operation: string, response: net.Response): never
+	const summary = if response.status == 401
+		then 'Roblox could not authenticate'
+		else 'Roblox request failed'
 	error(
-		errors.runtime_error(
-			`Roblox Open Cloud could not {operation} (HTTP {response.status}).`,
-			{
-				where = 'Roblox Open Cloud',
-				how_to_fix = 'Verify the API key scopes, universe/place IDs, and network access, then run the command again.',
-			}
-		),
+		errors.runtime_error(summary, {
+			where = `HTTP {response.status} while {operation}`,
+			how_to_fix = 'Check the API key, place configuration, and network access.',
+		}),
 		0
 	)
 end
@@ -274,17 +274,15 @@ const function run(
 	script_source: string,
 	on_stage: ((string) -> ())?
 ): CompletedTask
-	if on_stage ~= nil then on_stage 'Uploading bundle to Roblox' end
+	if on_stage ~= nil then on_stage 'uploading bundle' end
 	const input_path = upload_binary_input(client, config, api_key, bundle)
-	if on_stage ~= nil then on_stage 'Starting remote test session' end
+	if on_stage ~= nil then on_stage 'starting session' end
 	const resource_path =
 		create_task(client, config, api_key, script_source, input_path)
-	if on_stage ~= nil then on_stage 'Waiting for Roblox to run tests' end
+	if on_stage ~= nil then on_stage 'running tests' end
 	const completed =
 		wait_for_completion(client, config, api_key, resource_path)
-	if on_stage ~= nil then
-		on_stage 'Collecting remote results and logs'
-	end
+	if on_stage ~= nil then on_stage 'collecting results' end
 	return completed
 end
 

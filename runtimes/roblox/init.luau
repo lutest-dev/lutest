@@ -59,7 +59,7 @@ const function run(
 		discovery_config
 	)
 	const current_progress = progress.default_progress()
-	current_progress.update 'Preparing Roblox test bundle'
+	current_progress.update 'preparing bundle'
 
 	local completed = nil :: open_cloud.CompletedTask?
 	local run_error = nil :: string?

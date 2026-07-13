@@ -1,7 +1,7 @@
 const fs = require '@std/fs'
 const path = require '@std/path'
 const errors = require '@core/errors'
-const tint = require '@packages/tint'
+const ui = require '@lutest/utils/ui'
 const path_utils = require '@lutest/utils/path'
 const library = require '@runtimes/roblox/library'
 const t = require '@lutest_release'
@@ -42,9 +42,10 @@ end
 const function format_success(destination: string): string
 	const relative = path_utils.relative_to_cwd(destination)
 	return table.concat({
-		tint.green.bold(`Created Roblox package at ./{relative}`),
+		ui.passed 'Roblox package created',
+		`  {ui.section(`./{relative}`)}`,
 		'',
-		'Configure `discovery.roblox.require` for the package path in your game.',
+		ui.warned 'Set discovery.roblox.require to this package path.',
 		'',
 		'local ReplicatedStorage = game:GetService \'ReplicatedStorage\'',
 		'local t = require(ReplicatedStorage.lutest)',

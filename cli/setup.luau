@@ -4,7 +4,7 @@ const path = require '@std/path'
 const process = require '@std/process'
 const stringext = require '@std/stringext'
 const errors = require '@core/errors'
-const tint = require '@packages/tint'
+const ui = require '@lutest/utils/ui'
 const tty = require '@lutest/utils/tty'
 const t = require '@lutest_release'
 
@@ -66,7 +66,7 @@ const function read_default(
 	label: string,
 	default: string
 ): string
-	const message = `? {label} [{default}]: `
+	const message = `? {label} [{default}]  `
 	const value = stringext.trim(prompt(message))
 	const resolved = if value == '' then default else value
 	if confirm ~= nil then confirm(message, resolved) end
@@ -79,7 +79,7 @@ const function read_positive_integer(
 	warn: Warn?,
 	label: string
 ): number
-	const message = `? {label}: `
+	const message = `? {label}  `
 
 	while true do
 		const value = stringext.trim(prompt(message))
@@ -90,7 +90,7 @@ const function read_positive_integer(
 		end
 
 		if warn ~= nil then
-			warn(`Invalid {label}. Enter a positive integer.`)
+			warn(`{label} must be a positive integer.`)
 		end
 	end
 end
@@ -100,8 +100,7 @@ const function read_runtime(
 	confirm: Confirm?,
 	warn: Warn?
 ): RuntimeSelection
-	const message =
-		'? Which runtimes do you want to configure? [lute/roblox/both]: '
+	const message = '? Runtime [lute/roblox/both]  '
 
 	while true do
 		const runtime = parse_runtime(prompt(message))
@@ -110,9 +109,7 @@ const function read_runtime(
 			return runtime
 		end
 
-		if warn ~= nil then
-			warn 'Invalid runtime selection. Choose `lute`, `roblox`, or `both`.'
-		end
+		if warn ~= nil then warn 'Choose lute, roblox, or both.' end
 	end
 end
 
@@ -159,31 +156,27 @@ const function render_config(config: SetupConfig): string
 	return `{table.concat(lines, '\n')}\n`
 end
 
-const function format_intro(): string
-	return table.concat({
-		tint.cyan.bold 'Lutest setup',
-		tint.dim 'Create an initial lutest.toml for this project.',
-	}, '\n')
-end
-
 const function format_confirmation(message: string, value: string): string
 	const label = message:gsub('^%?%s*', '')
-	return tint.green(`✓ {label}{value}`)
+		:gsub('%s*%[.-%]%s*$', '')
+		:gsub(':%s*$', '')
+		:gsub('%s+$', '')
+		:lower()
+	return ui.success(`{label}: {value}`)
 end
 
 const function format_success(config: SetupConfig): string
 	const lines = {
-		tint.green.bold 'Created lutest.toml.',
+		ui.passed 'lutest.toml created',
 	} :: { string }
 	if not includes_roblox(config.runtime) then
 		return table.concat(lines, '\n')
 	end
 
 	table.insert(lines, '')
-	table.insert(lines, tint.magenta.bold 'Roblox')
 	table.insert(
 		lines,
-		'Set ROBLOX_OPEN_CLOUD_API_KEY in your environment or .env before running tests.'
+		ui.muted '  Set ROBLOX_OPEN_CLOUD_API_KEY before remote tests.'
 	)
 	return table.concat(lines, '\n')
 end
@@ -200,13 +193,13 @@ const function collect_config(
 		config.lute_root = read_default(
 			prompt,
 			confirm,
-			'Lute source root',
+			'Lute root',
 			DEFAULT_LUTE_ROOT
 		)
 		config.lute_require = read_default(
 			prompt,
 			confirm,
-			'Lutest require path',
+			'Lutest path',
 			DEFAULT_LUTE_REQUIRE
 		)
 	end
@@ -215,13 +208,13 @@ const function collect_config(
 		config.roblox_root = read_default(
 			prompt,
 			confirm,
-			'Roblox source root',
+			'Roblox root',
 			DEFAULT_ROBLOX_ROOT
 		)
 		config.roblox_require = read_default(
 			prompt,
 			confirm,
-			'Lutest library path',
+			'Lutest path',
 			DEFAULT_ROBLOX_REQUIRE
 		)
 		config.universe_id = read_positive_integer(
@@ -246,18 +239,16 @@ const function run()
 		)
 	end
 
-	print(format_intro())
-	print ''
 	const is_tty = tty.stdout_is_tty()
 	const config = collect_config(function(message: string): string
-		return io.input(tint.cyan(message))
+		return io.input(ui.accent(message))
 	end, function(message: string, value: string)
 		if not is_tty then return end
 		io.write(
 			`\27[1A\r\27[2K{format_confirmation(message, value)}\n`
 		)
 	end, function(message: string)
-		print(tint.yellow(`! {message}`))
+		print(ui.warned(message))
 	end)
 	fs.writeStringToFile(config_path, render_config(config))
 	print ''
@@ -318,10 +309,11 @@ t.test('should collect a complete Roblox configuration', function()
 	assert(confirmed[5] == '456')
 end)
 
-t.test('should format a successful answer with a checkmark', function()
+t.test('should format a successful answer as compact state', function()
 	const output = format_confirmation('? Universe ID: ', '123')
 
-	assert(output:find('✓ Universe ID: 123', 1, true) ~= nil)
+	assert(output:find('universe id', 1, true) ~= nil)
+	assert(output:find('123', 1, true) ~= nil)
 end)
 
 t.test('should format Roblox setup guidance', function()
@@ -333,7 +325,7 @@ t.test('should format Roblox setup guidance', function()
 		place_id = 2,
 	}
 
-	assert(output:find('Created lutest.toml.', 1, true) ~= nil)
+	assert(output:find('lutest.toml created', 1, true) ~= nil)
 	assert(output:find('ROBLOX_OPEN_CLOUD_API_KEY', 1, true) ~= nil)
 end)
 
@@ -362,7 +354,10 @@ t.test('should repeat an invalid runtime selection with a warning', function()
 	assert(runtime == 'roblox')
 	assert(index == 2)
 	assert(#warnings == 1)
-	assert(warnings[1]:find('Invalid runtime selection.', 1, true) ~= nil)
+	assert(
+		warnings[1]:find('Choose lute, roblox, or both.', 1, true)
+			~= nil
+	)
 end)
 
 t.test('should repeat an invalid Roblox ID with a warning', function()
@@ -384,7 +379,13 @@ t.test('should repeat an invalid Roblox ID with a warning', function()
 	assert(universe_id == 123)
 	assert(index == 2)
 	assert(#warnings == 1)
-	assert(warnings[1]:find('Invalid Universe ID.', 1, true) ~= nil)
+	assert(
+		warnings[1]:find(
+			'Universe ID must be a positive integer.',
+			1,
+			true
+		) ~= nil
+	)
 end)
 
 return {

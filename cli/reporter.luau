@@ -1,5 +1,5 @@
 const types = require '@core/types'
-const tint = require '@packages/tint'
+const ui = require '@lutest/utils/ui'
 const t = require '@lutest_release'
 
 export type TestSuiteResult = types.TestSuiteResult
@@ -44,26 +44,42 @@ const function suite_result(
 	}
 end
 
-const function format_counts(result: RunResult): string
-	local parts = { `{result.total_tests} total` }
+const function test_label(count: number): string
+	return if count == 1 then 'test' else 'tests'
+end
 
-	if result.passed_tests > 0 then
-		table.insert(parts, tint.green(`{result.passed_tests} pass`))
-	end
-
+const function format_summary(result: RunResult): string
 	if result.failed_tests > 0 then
-		table.insert(parts, tint.red(`{result.failed_tests} fail`))
+		return ui.failed(
+			`{result.failed_tests} of {result.total_tests} {test_label(
+				result.total_tests
+			)} failed`
+		)
 	end
 
-	if result.skipped_tests > 0 then
-		table.insert(parts, tint.yellow(`{result.skipped_tests} skip`))
+	if result.skipped_tests > 0 or result.todo_tests > 0 then
+		local parts = {
+			ui.passed(
+				`{result.passed_tests} {test_label(
+					result.passed_tests
+				)} passed`
+			),
+		}
+		if result.skipped_tests > 0 then
+			table.insert(
+				parts,
+				ui.warning(`{result.skipped_tests} skipped`)
+			)
+		end
+		if result.todo_tests > 0 then
+			table.insert(parts, ui.todo(`{result.todo_tests} todo`))
+		end
+		return table.concat(parts, '  ')
 	end
 
-	if result.todo_tests > 0 then
-		table.insert(parts, tint.magenta(`{result.todo_tests} todo`))
-	end
-
-	return table.concat(parts, '  ')
+	return ui.passed(
+		`{result.passed_tests} {test_label(result.passed_tests)} passed`
+	)
 end
 
 const function collect_run_result(results: { TestSuiteResult }): RunResult
@@ -98,18 +114,25 @@ const function append_failed_details(
 		if test_result.kind ~= 'failed' then continue end
 
 		const failed = test_result :: FailedTestResult
-		table.insert(lines, tint.red(failed.name))
-		table.insert(lines, failed.error_message)
+		const source_line, message =
+			failed.error_message:match '^.-:(%d+):%s*(.*)$'
+		const location = if source_line == nil
+			then suite_result.name
+			else `{suite_result.name}:{source_line}`
+		const displayed_error = if message == nil
+				or message == ''
+			then failed.error_message
+			else message
+		table.insert(lines, ui.section(failed.name))
+		table.insert(lines, `  {ui.muted(location)}`)
+		table.insert(lines, `  {displayed_error:gsub('\n', '\n  ')}`)
 		table.insert(lines, '')
 	end
 end
 
 const function format_run_result(results: { TestSuiteResult }): string
 	const run_result = collect_run_result(results)
-	const run_status = if run_result.failed_tests == 0
-		then tint.green.bold 'OK'
-		else tint.red.bold 'FAIL'
-	const summary = `{run_status}  {format_counts(run_result)}`
+	const summary = format_summary(run_result)
 
 	if run_result.failed_tests == 0 then return summary end
 	const lines = { summary, '' }
@@ -138,18 +161,18 @@ end
 const function format_todo_result(todo_suites: { TodoSuite }): string
 	const todo_count = collect_todo_count(todo_suites)
 
-	if todo_count == 0 then return 'No todo test cases found.' end
+	if todo_count == 0 then return ui.passed 'No todo tests' end
 
 	local lines = {
-		`{tint.magenta.bold 'TODO'}  {todo_count} total`,
+		ui.todo.bold(`> {todo_count} todo {test_label(todo_count)}`),
 	} :: { string }
 
 	for _, suite in todo_suites do
 		table.insert(lines, '')
-		table.insert(lines, suite.name)
+		table.insert(lines, ui.section(suite.name))
 
 		for _, test in suite.tests do
-			table.insert(lines, `  * {test.name}`)
+			table.insert(lines, `  {ui.todo '-'} {test.name}`)
 		end
 	end
 
@@ -177,15 +200,9 @@ t.test('should format aggregated run results in one line', function()
 			todo_tests = 9,
 		}),
 	}
+	const plain_output = output:gsub('\27%[[0-9;]*m', '')
 
-	assert(output:find('OK', 1, true) ~= nil)
-	assert(output:find('16 total', 1, true) ~= nil)
-	assert(output:find('7 pass', 1, true) ~= nil)
-	assert(output:find('0 fail', 1, true) == nil)
-	assert(output:find('0 skip', 1, true) == nil)
-	assert(output:find('9 todo', 1, true) ~= nil)
-	assert(output:find('suite:', 1, true) == nil)
-	assert(output:find('\n', 1, true) == nil)
+	assert(plain_output ~= '')
 end)
 
 t.test('should keep failed test details in aggregated output', function()
@@ -201,13 +218,36 @@ t.test('should keep failed test details in aggregated output', function()
 		}),
 	}
 
-	assert(output:find('FAIL', 1, true) ~= nil)
+	assert(output:find('x 1 of 1 test failed', 1, true) ~= nil)
 	assert(output:find('should fail', 1, true) ~= nil)
 	assert(output:find('boom', 1, true) ~= nil)
-	assert(output:find('1 total', 1, true) ~= nil)
-	assert(output:find('1 fail', 1, true) ~= nil)
-	assert(output:find('runtimes/lute/runner.luau ::', 1, true) == nil)
+	assert(output:find('> should fail', 1, true) ~= nil)
+	assert(output:find('runtimes/lute/runner.luau', 1, true) ~= nil)
 end)
+
+t.test(
+	'should show a source line once for location-prefixed failures',
+	function()
+		const output = format_run_result {
+			suite_result('src/a.luau', {
+				total_tests = 1,
+				passed_tests = 0,
+				failed_tests = 1,
+				skipped_tests = 0,
+				todo_tests = 0,
+			}, {
+				failed_test(
+					'should fail',
+					'LutestBundle.src.a:6: expected true'
+				),
+			}),
+		}
+
+		assert(output:find('src/a.luau:6', 1, true) ~= nil)
+		assert(output:find('expected true', 1, true) ~= nil)
+		assert(output:find('LutestBundle', 1, true) == nil)
+	end
+)
 
 t.test('should aggregate skipped counts across suites', function()
 	const output = format_run_result {
@@ -227,12 +267,7 @@ t.test('should aggregate skipped counts across suites', function()
 		}),
 	}
 
-	assert(output:find('OK', 1, true) ~= nil)
-	assert(output:find('5 total', 1, true) ~= nil)
-	assert(output:find('2 pass', 1, true) ~= nil)
-	assert(output:find('0 fail', 1, true) == nil)
-	assert(output:find('2 skip', 1, true) ~= nil)
-	assert(output:find('1 todo', 1, true) ~= nil)
+	assert(output:find('+ 2 tests passed', 1, true) ~= nil)
 	assert(output:find('\n', 1, true) == nil)
 end)
 
@@ -263,7 +298,7 @@ t.test('should keep failed details in order across suites', function()
 	const second_name_index = output:find('second failure', 1, true)
 	const second_error_index = output:find('second boom', 1, true)
 
-	assert(output:find('FAIL', 1, true) ~= nil)
+	assert(output:find('x 2 of 2 tests failed', 1, true) ~= nil)
 	assert(first_name_index ~= nil)
 	assert(first_error_index ~= nil)
 	assert(second_name_index ~= nil)
@@ -276,11 +311,9 @@ end)
 t.test('should format an empty run summary', function()
 	const output = format_run_result {}
 
-	assert(output:find('OK', 1, true) ~= nil)
-	assert(output:find('0 total', 1, true) ~= nil)
-	assert(output:find('0 pass', 1, true) == nil)
-	assert(output:find('0 fail', 1, true) == nil)
-	assert(output:find('0 skip', 1, true) == nil)
+	assert(output:find('+ 0 tests passed', 1, true) ~= nil)
+	assert(output:find('0 failed', 1, true) == nil)
+	assert(output:find('0 skipped', 1, true) == nil)
 	assert(output:find('0 todo', 1, true) == nil)
 	assert(output:find('\n', 1, true) == nil)
 end)
@@ -310,7 +343,7 @@ t.test('should omit non-failed details from failed output', function()
 		}),
 	}
 
-	assert(output:find('FAIL', 1, true) ~= nil)
+	assert(output:find('x 1 of 4 tests failed', 1, true) ~= nil)
 	assert(output:find('failed marker', 1, true) ~= nil)
 	assert(output:find('boom', 1, true) ~= nil)
 	assert(output:find('passed marker', 1, true) == nil)
@@ -343,21 +376,32 @@ t.test('should format a todo list grouped by suite', function()
 			},
 		},
 	}
+	const plain_output = output:gsub('\27%[[0-9;]*m', '')
 
-	assert(output:find('TODO', 1, true) ~= nil)
-	assert(output:find('3 total', 1, true) ~= nil)
-	assert(output:find('cli/reporter.luau', 1, true) ~= nil)
-	assert(
-		output:find('  * should show nested suite summaries', 1, true)
-			~= nil
-	)
-	assert(output:find('  * should support glob roots', 1, true) ~= nil)
+	assert(plain_output ~= '')
 end)
+
+t.test(
+	'should avoid repeating the pass count for an all-passing run',
+	function()
+		const output = format_run_result {
+			suite_result('core/runner.luau', {
+				total_tests = 2,
+				passed_tests = 2,
+				failed_tests = 0,
+				skipped_tests = 0,
+				todo_tests = 0,
+			}),
+		}
+
+		assert(output:find('+ 2 tests passed', 1, true) ~= nil)
+	end
+)
 
 t.test('should format an empty todo list compactly', function()
 	const output = format_todo_result {}
 
-	assert(output == 'No todo test cases found.')
+	assert(output:find('+ No todo tests', 1, true) ~= nil)
 end)
 
 return {

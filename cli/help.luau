@@ -1,37 +1,20 @@
-const tint = require '@packages/tint'
+const ui = require '@lutest/utils/ui'
 const t = require '@lutest_release'
 
 const function format_help(): string
 	return table.concat({
-		tint.cyan.bold 'Usage:',
-		`  {tint.green 'lutest install-package [--output <parent-directory>]'}`,
-		`  {tint.green 'lutest setup'}`,
-		`  {tint.green 'lutest test [paths...] [--runtime lute|roblox]'}`,
-		`  {tint.green 'lutest todo [paths...] [--runtime lute|roblox]'}`,
-		`  {tint.green 'lutest version'}`,
-		`  {tint.green 'lutest help'}`,
+		ui.accent.bold 'Lutest',
+		ui.muted 'Co-located tests for Luau modules.',
 		'',
-		tint.cyan.bold 'Description:',
-		'  Run Lutest subcommands.',
-		'  The install-package command creates a Roblox-ready Lutest source package.',
-		'  The setup command creates an initial lutest.toml configuration.',
-		'  The test command discovers and runs test modules from the given files or directories.',
-		'  Without --runtime, Lutest uses the local lute runtime.',
-		'  Without test paths, uses roots from lutest.toml or defaults to ".".',
+		ui.section 'Commands',
+		'  test [paths...] [--runtime lute|roblox]',
+		'  todo [paths...] [--runtime lute|roblox]',
+		'  setup',
+		'  install-package [--output <parent-directory>]',
+		'  version',
 		'',
-		tint.cyan.bold 'Examples:',
-		`  {tint.green 'lutest install-package'}`,
-		`  {tint.green 'lutest install-package --output src/ReplicatedStorage'}`,
-		`  {tint.green 'lutest setup'}`,
-		`  {tint.green 'lutest test'}`,
-		`  {tint.green 'lutest test .'}`,
-		`  {tint.green 'lutest test src'}`,
-		`  {tint.green 'lutest test src packages'}`,
-		`  {tint.green 'lutest test src --runtime roblox'}`,
-		`  {tint.green 'lutest todo'}`,
-		`  {tint.green 'lutest todo core'}`,
-		`  {tint.green 'lutest version'}`,
-		`  {tint.green 'lutest help'}`,
+		ui.section 'Try',
+		'  lutest test game --runtime roblox',
 	}, '\n')
 end
 
@@ -39,55 +22,29 @@ const function print_help()
 	print(format_help())
 end
 
-t.test('should format help with usage, description, and examples', function()
+t.test('should format concise help with usage and examples', function()
 	const output = format_help()
 
-	assert(output:find('Usage:', 1, true) ~= nil)
-	assert(output:find('lutest install-package', 1, true) ~= nil)
-	assert(output:find('lutest setup', 1, true) ~= nil)
 	assert(
-		output:find(
-			'The install-package command creates a Roblox-ready Lutest source package.',
-			1,
-			true
-		) ~= nil
+		output:find('Co-located tests for Luau modules.', 1, true)
+			~= nil
+	)
+	assert(output:find('> Commands', 1, true) ~= nil)
+	assert(output:find('install-package', 1, true) ~= nil)
+	assert(output:find('setup', 1, true) ~= nil)
+	assert(
+		output:find('test [paths...] [--runtime lute|roblox]', 1, true)
+			~= nil
 	)
 	assert(
-		output:find(
-			'lutest test [paths...] [--runtime lute|roblox]',
-			1,
-			true
-		) ~= nil
+		output:find('todo [paths...] [--runtime lute|roblox]', 1, true)
+			~= nil
 	)
-	assert(
-		output:find(
-			'The setup command creates an initial lutest.toml configuration.',
-			1,
-			true
-		) ~= nil
-	)
-	assert(
-		output:find(
-			'lutest todo [paths...] [--runtime lute|roblox]',
-			1,
-			true
-		) ~= nil
-	)
-	assert(output:find('lutest version', 1, true) ~= nil)
-	assert(output:find('lutest help', 1, true) ~= nil)
+	assert(output:find('version', 1, true) ~= nil)
+	assert(output:find('> Try', 1, true) ~= nil)
 	assert(output:find('lutest --help', 1, true) == nil)
-	assert(output:find('Description:', 1, true) ~= nil)
-	assert(
-		output:find(
-			'The test command discovers and runs test modules from the given files or directories.',
-			1,
-			true
-		) ~= nil
-	)
-	assert(output:find('Examples:', 1, true) ~= nil)
-	assert(output:find('lutest test src packages', 1, true) ~= nil)
-	assert(output:find('lutest test src --runtime roblox', 1, true) ~= nil)
-	assert(output:find('lutest todo core', 1, true) ~= nil)
+	assert(output:find('lutest test game --runtime roblox', 1, true) ~= nil)
+	assert(output:find('Description', 1, true) == nil)
 end)
 
 return {

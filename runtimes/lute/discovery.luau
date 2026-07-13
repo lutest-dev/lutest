@@ -344,18 +344,14 @@ const function discover_path(
 			const suggested_path =
 				find_path_suggestion(input.path, cwd)
 			error(
-				errors.usage_error(
-					`Could not find test file or directory '{input.path}'.`,
-					{
-						command = `lutest test {input.path}`,
-						highlight = input.path,
-						suggestion = if suggested_path
-								== nil
-							then nil
-							else `'{suggested_path}'`,
-						how_to_fix = 'Pass an existing test file or directory path.',
-					}
-				),
+				errors.usage_error('Test path not found', {
+					where = input.path,
+					suggestion = if suggested_path
+							== nil
+						then nil
+						else `'{suggested_path}'`,
+					how_to_fix = 'Use a test file or directory that exists.',
+				}),
 				0
 			)
 		end
@@ -1148,19 +1144,12 @@ t.test('should raise a usage error for a missing explicit test path', function()
 	assert(ok == false)
 	assert(message ~= nil)
 	message = errors.strip_ansi(errors.display_error(message))
-	assert(
-		message:find(
-			'Could not find test file or directory \'missing-path\'.',
-			1,
-			true
-		) ~= nil
-	)
-	assert(message:find('lutest test missing-path', 1, true) ~= nil)
-	assert(message:find('^^^^', 1, true) ~= nil)
+	assert(message:find('Test path not found', 1, true) ~= nil)
+	assert(message:find('> missing-path', 1, true) ~= nil)
 	assert(message:find('How to fix:', 1, true) == nil)
 	assert(
 		message:find(
-			'Pass an existing test file or directory path.',
+			'Use a test file or directory that exists.',
 			1,
 			true
 		) ~= nil
@@ -1209,8 +1198,7 @@ t.test('should suggest a nearby explicit test path when available', function()
 	assert(ok == false)
 	assert(message ~= nil)
 	message = errors.strip_ansi(errors.display_error(message))
-	assert(message:find('lutest test coree', 1, true) ~= nil)
-	assert(message:find('^^^^^', 1, true) ~= nil)
+	assert(message:find('> coree', 1, true) ~= nil)
 	assert(message:find('Did you mean \'core\'?', 1, true) ~= nil)
 	assert(message:find('Did you mean:', 1, true) == nil)
 
@@ -1246,7 +1234,7 @@ t.test(
 		assert(ok == false)
 		assert(message ~= nil)
 		message = errors.strip_ansi(errors.display_error(message))
-		assert(message:find('ConfigurationError:', 1, true) ~= nil)
+		assert(message:find('ConfigurationError:', 1, true) == nil)
 		assert(
 			message:find(
 				'Configured discovery root \'missing-root\' does not exist.',

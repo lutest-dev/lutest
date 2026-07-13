@@ -33,13 +33,18 @@ pull request only when the responsibility matches. Otherwise create a new
 `type/slug` branch and a separate draft pull request; do not mix unrelated
 work merely because a branch is already active.
 
-When preparing a pull request, Codex must make the release decision without
-asking the user to create release metadata:
+Every pull request requires exactly one release decision. This is a mandatory
+merge gate, not an optional follow-up. Decide it before opening the pull
+request, then verify that the corresponding metadata is present before
+reporting the pull request to the user:
 
-- Create a Changeset with the appropriate SemVer bump for a user-visible
-  change that should appear in a release.
-- Apply the `no-release` label when the change has no release impact, such as
-  internal refactors, CI, tests, documentation, or tooling changes.
+- For a user-visible change that belongs in a release, create a Changeset with
+  the appropriate SemVer bump before pushing the branch.
+- For a change with no release impact, such as an internal refactor, CI, test,
+  documentation, or tooling change, apply the `no-release` label immediately
+  after opening the draft pull request.
+- Never leave a pull request without a Changeset or the `no-release` label.
+  Do not ask the user to review or merge it until this is verified.
 - Ask the user only when the release impact or the SemVer bump is genuinely
   ambiguous.
 

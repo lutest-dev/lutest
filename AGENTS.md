@@ -22,6 +22,11 @@ Work on a `type/slug` branch and merge changes through a pull request. Do not
 commit or push directly to `main` unless the user explicitly overrides this
 rule.
 
+After pushing a work branch, open its pull request as a draft by default. The
+user decides when it is ready for review and merge. Before asking that
+decision, report concise reasons to accept the pull request and any concrete
+reasons not to accept it yet, including unverified risks or failing checks.
+
 When preparing a pull request, Codex must make the release decision without
 asking the user to create release metadata:
 

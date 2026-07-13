@@ -281,6 +281,22 @@ const function load_project_config(cwd: string?): ProjectConfig
 	return result :: ProjectConfig
 end
 
+const function has_discovery_config(config: LutestConfig?): boolean
+	if config == nil then return false end
+	return config.require ~= '' and #config.roots > 0
+end
+
+const function default_runtime(project: ProjectConfig): RuntimeName
+	if
+		has_discovery_config(project.roblox)
+		and not has_discovery_config(project.lute)
+	then
+		return 'roblox'
+	end
+
+	return 'lute'
+end
+
 const function load_config(cwd: string?): LutestConfig
 	const resolved_cwd = cwd or path_utils.cwd()
 	const project = load_project_config(resolved_cwd)
@@ -402,7 +418,42 @@ timeout_seconds = 301
 	assert(ok == false)
 end)
 
+t.test('should select Roblox when it is the only configured runtime', function()
+	assert(default_runtime {
+		lute = nil,
+		roblox = {
+			roots = { 'game' },
+			ignore = {},
+			require = 'ReplicatedStorage.Packages.lutest',
+			gitignore = true,
+		},
+		roblox_options = nil,
+	} == 'roblox')
+end)
+
+t.test(
+	'should keep Lute as the default when both runtimes are configured',
+	function()
+		assert(default_runtime {
+			lute = {
+				roots = { 'src' },
+				ignore = {},
+				require = '@lutest_release',
+				gitignore = true,
+			},
+			roblox = {
+				roots = { 'game' },
+				ignore = {},
+				require = 'ReplicatedStorage.Packages.lutest',
+				gitignore = true,
+			},
+			roblox_options = nil,
+		} == 'lute')
+	end
+)
+
 return {
+	default_runtime = default_runtime,
 	load_config = load_config,
 	load_project_config = load_project_config,
 	load_roblox_config = load_roblox_config,

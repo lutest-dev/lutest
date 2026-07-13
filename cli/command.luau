@@ -148,7 +148,7 @@ const function parse_command(args: { string }): ParsedCommand
 		return {
 			kind = command,
 			paths = paths,
-			runtime = runtime or 'lute',
+			runtime = runtime,
 		}
 	end
 
@@ -283,7 +283,7 @@ t.test('should parse test subcommand paths', function()
 	assert(#(command.paths :: { string }) == 2)
 	assert((command.paths :: { string })[1] == 'core')
 	assert((command.paths :: { string })[2] == 'utils')
-	assert(command.runtime == 'lute')
+	assert(command.runtime == nil)
 end)
 
 t.test('should parse an explicit Roblox runtime', function()

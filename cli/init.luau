@@ -8,6 +8,7 @@ const version = require '@self/version'
 const reporter = require '@self/reporter'
 const todo = require '@self/todo'
 const lute = require '@runtimes/lute'
+const config = require '@runtimes/lute/config'
 const roblox = require '@runtimes/roblox'
 
 type TodoTest = todo.TodoTest
@@ -100,7 +101,11 @@ const function main()
 		end
 
 		if parsed_command.kind == 'todo' then
-			if parsed_command.runtime == 'roblox' then
+			const runtime = parsed_command.runtime
+				or config.default_runtime(
+					config.load_project_config()
+				)
+			if runtime == 'roblox' then
 				const remote_results = roblox.run(
 					parsed_command.paths :: { string },
 					'todo'
@@ -122,7 +127,9 @@ const function main()
 			return
 		end
 
-		if parsed_command.runtime == 'roblox' then
+		const runtime = parsed_command.runtime
+			or config.default_runtime(config.load_project_config())
+		if runtime == 'roblox' then
 			results = roblox.run(
 				parsed_command.paths :: { string },
 				'test'

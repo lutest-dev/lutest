@@ -9,6 +9,7 @@ const function format_help(): string
 		ui.section 'Commands',
 		'  test [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',
 		'  todo [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',
+		'  doctor [--config <path>]',
 		'  setup',
 		'  install-package [--output <parent-directory>]',
 		'  version',
@@ -39,6 +40,7 @@ t.test('should format concise help with usage and examples', function()
 			true
 		) ~= nil
 	)
+	assert(output:find('doctor [--config <path>]', 1, true) ~= nil)
 	assert(
 		output:find(
 			'todo [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',

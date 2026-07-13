@@ -1,6 +1,7 @@
 const process = require '@std/process'
 const errors = require '@core/errors'
 const command = require '@self/command'
+const doctor = require '@self/doctor'
 const help = require '@self/help'
 const install_package = require '@self/install_package'
 const setup = require '@self/setup'
@@ -115,6 +116,7 @@ const function main()
 	local todo_suites = nil :: { TodoSuite }?
 	local dry_run_files = nil :: { string }?
 	local dry_run_runtime = nil :: ('lute' | 'roblox')?
+	local doctor_report = nil :: doctor.DoctorReport?
 	local runtime_error = nil :: string?
 	const ok = xpcall(function()
 		if parsed_command.kind == 'install-package' then
@@ -124,6 +126,11 @@ const function main()
 
 		if parsed_command.kind == 'setup' then
 			setup.run()
+			return
+		end
+
+		if parsed_command.kind == 'doctor' then
+			doctor_report = doctor.run(parsed_command.config_path)
 			return
 		end
 
@@ -204,6 +211,12 @@ const function main()
 		end
 
 		process.exit(1)
+	end
+
+	if doctor_report ~= nil then
+		const report = doctor_report :: doctor.DoctorReport
+		print(report.output)
+		process.exit(if report.ready then 0 else 1)
 	end
 
 	if dry_run_files ~= nil then

@@ -35,14 +35,15 @@ const function runtime_error(summary: string, details: string?): never
 	error(
 		errors.runtime_error(summary, {
 			where = 'Roblox bundle preparation',
-			how_to_fix = 'Install Lune on PATH, or set LUTEST_LUNE_BIN to its executable path.',
+			how_to_fix = 'Install Lune on PATH, or set LUTEST_LUNE_BIN '
+				.. 'to its executable path.',
 			details = details,
 		}),
 		0
 	)
 end
 
-const function ensure_lune_available(command: string)
+const function inspect_lune(command: string): (boolean, string?)
 	local result = nil :: process.ProcessResult?
 	local failure = nil :: string?
 	const ok = xpcall(function()
@@ -51,16 +52,27 @@ const function ensure_lune_available(command: string)
 		failure = tostring(err)
 		return failure
 	end)
-	if
-		not ok
-		or result == nil
-		or (result :: process.ProcessResult).exitcode ~= 0
-	then
+	if not ok or result == nil then return false, failure end
+	if (result :: process.ProcessResult).exitcode ~= 0 then
+		return false, (result :: process.ProcessResult).stderr
+	end
+
+	return true, nil
+end
+
+const function ensure_lune_available(command: string)
+	const available, details = inspect_lune(command)
+	if not available then
 		runtime_error(
 			`Could not run Lune executable '{command}'.`,
-			failure
+			details
 		)
 	end
+end
+
+const function is_available(): boolean
+	const available = inspect_lune(lune_command())
+	return available
 end
 
 const function bundle_directory(): string
@@ -230,4 +242,5 @@ t.test(
 
 return {
 	build = build,
+	is_available = is_available,
 }

@@ -23,7 +23,7 @@ const function parse_dotenv(contents: string): { [string]: string }
 	return values
 end
 
-const function load(cwd: string?): string
+const function find(cwd: string?): string?
 	const environment_value = process.env[ENVIRONMENT_KEY]
 	if type(environment_value) == 'string' and environment_value ~= '' then
 		return environment_value
@@ -36,6 +36,13 @@ const function load(cwd: string?): string
 			parse_dotenv(fs.readFileToString(dotenv_path))[ENVIRONMENT_KEY]
 		if value ~= nil and value ~= '' then return value end
 	end
+
+	return nil
+end
+
+const function load(cwd: string?): string
+	const value = find(cwd)
+	if value ~= nil then return value end
 
 	error(
 		errors.configuration_error('Roblox API key missing', {
@@ -52,5 +59,6 @@ t.test('should parse a dotenv API key without exposing it', function()
 end)
 
 return {
+	find = find,
 	load = load,
 }

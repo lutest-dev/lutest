@@ -4,6 +4,7 @@ const t = require '@lutest_release'
 
 export type ParsedCommand = {
 	kind: 'help'
+		| 'doctor'
 		| 'install-package'
 		| 'setup'
 		| 'test'
@@ -181,6 +182,38 @@ const function parse_command(args: { string }): ParsedCommand
 		}
 	end
 
+	if command == 'doctor' then
+		local paths = nil :: { string }?
+		local runtime = nil :: ('lute' | 'roblox')?
+		local config_path = nil :: string?
+		local dry_run = false
+		local parse_error = nil :: string?
+		const ok = xpcall(function()
+			paths, runtime, config_path, dry_run =
+				collect_command_arguments(args, 2)
+		end, function(err)
+			parse_error = tostring(err)
+			return parse_error
+		end)
+		if not ok then
+			return {
+				kind = 'error',
+				message = parse_error,
+			}
+		end
+		if #(paths :: { string }) > 0 or runtime ~= nil or dry_run then
+			return {
+				kind = 'error',
+				message = errors.usage_error '`doctor` only accepts `--config <path>`.',
+			}
+		end
+
+		return {
+			kind = 'doctor',
+			config_path = config_path,
+		}
+	end
+
 	if command == 'test' or command == 'todo' then
 		local paths = nil :: { string }?
 		local runtime = nil :: ('lute' | 'roblox')?
@@ -220,6 +253,7 @@ const function parse_command(args: { string }): ParsedCommand
 
 	const suggested_command = suggest.closest_match(command, {
 		'help',
+		'doctor',
 		'install-package',
 		'setup',
 		'test',
@@ -272,6 +306,30 @@ t.test('should parse setup without arguments', function()
 	const command = parse_command { 'setup' }
 
 	assert(command.kind == 'setup')
+end)
+
+t.test('should parse doctor with an explicit configuration path', function()
+	const command = parse_command {
+		'doctor',
+		'--config',
+		'configs/roblox.toml',
+	}
+
+	assert(command.kind == 'doctor')
+	assert(command.config_path == 'configs/roblox.toml')
+end)
+
+t.test('should reject doctor test options', function()
+	const command = parse_command { 'doctor', '--runtime', 'roblox' }
+
+	assert(command.kind == 'error')
+	assert(
+		(command.message :: string):find(
+			'`doctor` only accepts `--config <path>`.',
+			1,
+			true
+		) ~= nil
+	)
 end)
 
 t.test('should reject setup arguments', function()

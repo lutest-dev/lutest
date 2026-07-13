@@ -25,7 +25,8 @@ see the [documentation](https://lutest-dev.github.io/site/).
 
 # Status
 
-Lutest is early-stage software. Its public API and configuration may change.
+Lutest is ready for production use. Its public API and configuration are still
+evolving, so upgrades may include breaking changes.
 
 # License
 

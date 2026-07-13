@@ -1,0 +1,69 @@
+name: Publish release
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'changeset-release/main'
+    uses: ./.github/workflows/release-validation.yml
+
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Read release version
+        id: version
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Download validated binaries
+        uses: actions/download-artifact@v5
+        with:
+          pattern: lutest-*
+          path: .tmp/release-assets
+
+      - name: Name release assets
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        shell: bash
+        run: |
+          mkdir -p dist
+          mv .tmp/release-assets/lutest-windows-x64/lutest.exe \
+            "dist/lutest-v${VERSION}-windows-x64.exe"
+          mv .tmp/release-assets/lutest-linux-x64/lutest \
+            "dist/lutest-v${VERSION}-linux-x64"
+          mv .tmp/release-assets/lutest-macos-arm64/lutest \
+            "dist/lutest-v${VERSION}-macos-arm64"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.value }}
+        shell: bash
+        run: |
+          gh release create "v${VERSION}" \
+            dist/lutest-v${VERSION}-windows-x64.exe \
+            dist/lutest-v${VERSION}-linux-x64 \
+            dist/lutest-v${VERSION}-macos-arm64 \
+            --title "v${VERSION}" \
+            --generate-notes

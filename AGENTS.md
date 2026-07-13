@@ -34,5 +34,6 @@ asking the user to create release metadata:
 
 Changesets accumulate after merge and the Release PR is generated or updated by
 automation. Do not manually create or edit a Release PR unless the user asks.
-Merging a regular pull request does not publish a release. Publishing from the
-Release PR is intentionally not automated yet.
+Merging a regular pull request does not publish a release. Merging the
+automated Release PR publishes the validated Windows, Linux, and macOS ARM64
+assets, creates the version tag, and creates the GitHub Release.

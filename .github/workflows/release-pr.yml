@@ -22,6 +22,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up mise
+        uses: jdx/mise-action@v4
+        with:
+          install: false
+
+      - name: Install commit hook tools
+        run: |
+          mise --no-config exec github:JohnnyMorganz/StyLua@2.5.2 \
+            --command "stylua --version"
+          mise --no-config exec github:luau-lang/lute@1.0.0 \
+            --command "lute --version"
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:

@@ -41,6 +41,10 @@ await updateFile(resolve(root, 'mise.toml'), [
   ],
 ]);
 
+await updateFile(resolve(root, 'wally.toml'), [
+  [/version = "[^"]+"/, `version = "${version}"`],
+]);
+
 await updateFile(resolve(root, 'loom.config.luau'), [
   [/version = '[^']+'/, `version = '${version}'`],
   [/rev = 'v[^']+'/, `rev = 'v${version}'`],

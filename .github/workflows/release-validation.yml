@@ -71,6 +71,19 @@ jobs:
           & $binary version
           & $binary test
 
+      - name: Prepare Wally package
+        if: matrix.platform == 'linux-x64'
+        run: >-
+          mise --no-config exec github:luau-lang/lute@1.0.0
+          --command "lute run scripts/build-wally-package.luau"
+
+      - name: Validate Wally package
+        if: matrix.platform == 'linux-x64'
+        run: >-
+          mise --no-config exec github:UpliftGames/wally@0.3.2
+          --command "wally package --project-path .tmp/wally-package
+          --output .tmp/wally-package.tar.gz"
+
       - name: Upload validated binary
         uses: actions/upload-artifact@v5
         with:

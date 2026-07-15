@@ -29,6 +29,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup mise
+        uses: jdx/mise-action@v4
+        with:
+          install: false
+
       - name: Read release version
         id: version
         shell: bash
@@ -65,6 +70,29 @@ jobs:
             found { print }
             found && /^## / && $0 != "## " ver { exit }
           ' CHANGELOG.md > .tmp/release-notes.md
+
+      - name: Prepare Wally package
+        run: mise run build-wally-package
+
+      - name: Publish Wally package
+        env:
+          WALLY_AUTH_TOKEN: ${{ secrets.WALLY_AUTH_TOKEN }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          metadata_url="https://api.wally.run/v1/package-metadata/lutest-dev/lutest"
+          metadata="$(curl --fail --silent "$metadata_url" || true)"
+          if [ -n "$metadata" ] && jq --exit-status \
+            --arg version "$VERSION" \
+            'any(.versions[]; .package.version == $version)' \
+            <<< "$metadata" > /dev/null; then
+            echo "Wally package lutest-dev/lutest@$VERSION already exists."
+            exit 0
+          fi
+
+          mise --no-config exec github:UpliftGames/wally@0.3.2 --command \
+            "wally login --project-path .tmp/wally-package --token $WALLY_AUTH_TOKEN"
+          mise --no-config exec github:UpliftGames/wally@0.3.2 --command \
+            "wally publish --project-path .tmp/wally-package"
 
       - name: Create GitHub Release
         env:

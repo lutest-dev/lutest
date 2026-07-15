@@ -1,0 +1,15 @@
+[package]
+name = "lutest-dev/lutest"
+description = "Test runner for Luau code, with a focus on lute and Roblox runtimes."
+version = "0.5.0"
+license = "MIT"
+authors = ["cayasde"]
+registry = "https://github.com/UpliftGames/wally-index"
+repository = "https://github.com/lutest-dev/lutest"
+homepage = "https://lutest-dev.github.io/site/"
+realm = "shared"
+include = ["LICENSE", "wally.toml", "src", "src/**"]
+exclude = ["**"]
+private = true
+
+[dependencies]

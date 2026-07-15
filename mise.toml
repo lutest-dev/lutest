@@ -5,6 +5,7 @@
 "github:JohnnyMorganz/luau-lsp" = "1.68.1"
 "github:pesde-pkg/pesde" = "0.7.3+registry.0.2.3"
 "github:JohnnyMorganz/StyLua" = "2.5.2"
+"github:UpliftGames/wally" = "0.3.2"
 "cargo:darklua" = "0.19.0"
 "github:lutest-dev/lutest" = "0.5.0"
 node = "24.15.0"
@@ -34,3 +35,7 @@ run = "lute run scripts/ensure-roblox-defs.luau"
 [tasks.check]
 description = "Run formatting, lint, and typecheck checks"
 depends = ["format-check", "lint", "typecheck"]
+
+[tasks.build-wally-package]
+description = "Prepare the Roblox Wally package in .tmp/wally-package"
+run = "lute run scripts/build-wally-package.luau"

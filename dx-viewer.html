@@ -255,7 +255,6 @@
   todo [paths...] [--runtime lute|roblox] [--config &lt;path&gt;] [--dry-run]
   doctor [--config &lt;path&gt;]
   setup
-  install-package [--output &lt;parent-directory&gt;]
   version
 
 <span class="accent strong">&gt; Try</span>
@@ -391,16 +390,6 @@
 <span class="accent">&gt;</span> Roblox <span class="muted">-</span> starting session
 <span class="accent">&gt;</span> Roblox <span class="muted">-</span> running tests
 <span class="accent">&gt;</span> Roblox <span class="muted">-</span> collecting results</pre>
-            </article>
-            <article class="full">
-              <header><h3>Package installation</h3><p>State first, location second</p></header>
-              <pre><span class="success strong">+ Roblox package created</span>
-  <span class="accent">&gt;</span> ./src/ReplicatedStorage/lutest
-
-<span class="warning">! Set discovery.roblox.require to this package path.</span>
-
-local ReplicatedStorage = game:GetService 'ReplicatedStorage'
-local t = require(ReplicatedStorage.lutest)</pre>
             </article>
           </div>
         </section>

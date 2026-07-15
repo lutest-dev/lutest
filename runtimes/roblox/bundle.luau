@@ -118,7 +118,7 @@ end
 
 const function bundled_library_files(): { BundleFile }
 	const files = {} :: { BundleFile }
-	for _, entry in library.files 'bundle' do
+	for _, entry in library.files() do
 		const file: BundleFile = {
 			absolute = entry.relative,
 			relative = `__lutest_lib/{entry.relative}`,

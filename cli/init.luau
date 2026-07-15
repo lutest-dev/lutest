@@ -3,7 +3,6 @@ const errors = require '@core/errors'
 const command = require '@self/command'
 const doctor = require '@self/doctor'
 const help = require '@self/help'
-const install_package = require '@self/install_package'
 const setup = require '@self/setup'
 const version = require '@self/version'
 const reporter = require '@self/reporter'
@@ -119,11 +118,6 @@ const function main()
 	local doctor_report = nil :: doctor.DoctorReport?
 	local runtime_error = nil :: string?
 	const ok = xpcall(function()
-		if parsed_command.kind == 'install-package' then
-			install_package.run(parsed_command.output)
-			return
-		end
-
 		if parsed_command.kind == 'setup' then
 			setup.run()
 			return
@@ -234,7 +228,6 @@ const function main()
 	end
 
 	if parsed_command.kind == 'setup' then process.exit(0) end
-	if parsed_command.kind == 'install-package' then process.exit(0) end
 
 	const resolved_results = results :: { reporter.TestSuiteResult }
 	if #resolved_results == 0 then

@@ -7,7 +7,7 @@
 "github:JohnnyMorganz/StyLua" = "2.5.2"
 "github:UpliftGames/wally" = "0.3.2"
 "cargo:darklua" = "0.19.0"
-"github:lutest-dev/lutest" = "0.5.0"
+"github:lutest-dev/lutest" = "0.6.0"
 node = "24.15.0"
 "npm:pnpm" = "11.0.9"
 

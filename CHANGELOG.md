@@ -1,5 +1,23 @@
 # lutest
 
+## 0.6.0
+
+### Minor Changes
+
+- [#27](https://github.com/lutest-dev/lutest/pull/27) [`56d68b1`](https://github.com/lutest-dev/lutest/commit/56d68b1eb063f23414d394e32d27f762e98ec69a) Thanks [@cayasde](https://github.com/cayasde)! - Remove the deprecated `install-package` command. Install the Roblox test library through Wally instead.
+
+- [#25](https://github.com/lutest-dev/lutest/pull/25) [`70e503c`](https://github.com/lutest-dev/lutest/commit/70e503c65946b35d5109a0b4bcfa6f08717b0c9a) Thanks [@cayasde](https://github.com/cayasde)! - Publish the Roblox test library as a Wally package.
+
+### Patch Changes
+
+- [#32](https://github.com/lutest-dev/lutest/pull/32) [`60dcf03`](https://github.com/lutest-dev/lutest/commit/60dcf03d599ccd0d4bc982f29af9406a9472b856) Thanks [@cayasde](https://github.com/cayasde)! - Resolve configured discovery roots from the directory containing an explicit config file.
+
+- [#30](https://github.com/lutest-dev/lutest/pull/30) [`c8f8b0d`](https://github.com/lutest-dev/lutest/commit/c8f8b0d73435b2358e139adf9057a8f4b5c1f975) Thanks [@cayasde](https://github.com/cayasde)! - Report syntax errors in candidate test files during discovery.
+
+- [#31](https://github.com/lutest-dev/lutest/pull/31) [`9aafa07`](https://github.com/lutest-dev/lutest/commit/9aafa07ba2e870b8671da68a0650e0b36974b871) Thanks [@cayasde](https://github.com/cayasde)! - Report configured discovery roots that do not exist in `lutest doctor`.
+
+- [#28](https://github.com/lutest-dev/lutest/pull/28) [`e436a41`](https://github.com/lutest-dev/lutest/commit/e436a41427b21b208815f7b7d2af1bf07520e678) Thanks [@cayasde](https://github.com/cayasde)! - Show versioned, numbered Roblox progress lines outside a TTY.
+
 ## 0.5.0
 
 ### Minor Changes

@@ -1,7 +1,7 @@
 [package]
 name = "lutest-dev/lutest"
 description = "Test runner for Luau code, with a focus on lute and Roblox runtimes."
-version = "0.5.0"
+version = "0.6.0"
 license = "MIT"
 authors = ["cayasde"]
 registry = "https://github.com/UpliftGames/wally-index"

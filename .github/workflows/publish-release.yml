@@ -6,6 +6,13 @@ on:
       - main
     types:
       - closed
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Confirm publishing the version currently on main
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -17,8 +24,12 @@ concurrency:
 jobs:
   validate:
     if: >-
+      (github.event_name == 'pull_request' &&
       github.event.pull_request.merged == true &&
-      github.event.pull_request.head.ref == 'changeset-release/main'
+      github.event.pull_request.head.ref == 'changeset-release/main') ||
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.publish)
     uses: ./.github/workflows/release-validation.yml
 
   publish:
@@ -72,7 +83,9 @@ jobs:
           ' CHANGELOG.md > .tmp/release-notes.md
 
       - name: Prepare Wally package
-        run: mise run build-wally-package
+        run: >-
+          mise --no-config exec github:luau-lang/lute@1.0.0
+          --command "lute run scripts/build-wally-package.luau"
 
       - name: Publish Wally package
         env:

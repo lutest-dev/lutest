@@ -59,10 +59,14 @@ end
 
 const function discover_suites(
 	paths: { string },
-	project_config: LutestConfig
+	project_config: LutestConfig,
+	config_path: string?
 ): { string }
-	const candidates =
-		lute_discovery.discover_all_files(paths, project_config)
+	const candidates = lute_discovery.discover_all_files(
+		paths,
+		project_config,
+		config_path
+	)
 	const suites = {} :: { string }
 	for _, filepath in candidates do
 		if depends_on_test_lib(filepath, project_config.require) then

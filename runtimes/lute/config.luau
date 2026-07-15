@@ -517,4 +517,5 @@ return {
 	load_config = load_config,
 	load_project_config = load_project_config,
 	load_roblox_config = load_roblox_config,
+	resolve_config_path = resolve_config_path,
 }

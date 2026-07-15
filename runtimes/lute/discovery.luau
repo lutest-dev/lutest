@@ -371,7 +371,8 @@ const function discover_path(
 	input: DiscoveryInput,
 	cwd: string,
 	gitignore_rules: GitignoreRules,
-	project_config: LutestConfig
+	project_config: LutestConfig,
+	config_filepath: string?
 )
 	const resolved_path = resolve_input_path(input.path, cwd)
 	if not fs.exists(resolved_path) then
@@ -397,9 +398,13 @@ const function discover_path(
 			errors.configuration_error(
 				`Configured discovery root '{input.path}' does not exist.`,
 				{
-					where = path_utils.normalize_path(
-						path.join(cwd, 'lutest.toml')
-					),
+					where = config_filepath
+						or path_utils.normalize_path(
+							path.join(
+								cwd,
+								'lutest.toml'
+							)
+						),
 					suggestion = if suggested_root
 							== nil
 						then nil
@@ -453,17 +458,22 @@ const function discover_files(
 	const discovered = {} :: { string }
 	const seen = {} :: SeenMap
 	const cwd = path_utils.cwd()
-	const gitignore_rules = load_gitignore_rules(cwd)
+	const resolved_config_path = config.resolve_config_path(config_path)
+	const config_directory = path.dirname(resolved_config_path)
 	const project_config = config.load_config(config_path)
 
 	for _, input in resolve_input_paths(paths, project_config) do
+		const input_directory = if input.source == 'config'
+			then config_directory
+			else cwd
 		discover_path(
 			discovered,
 			seen,
 			input,
-			cwd,
-			gitignore_rules,
-			project_config
+			input_directory,
+			load_gitignore_rules(input_directory),
+			project_config,
+			resolved_config_path
 		)
 	end
 
@@ -536,26 +546,27 @@ end
 
 const function discover_all_files(
 	paths: { string },
-	project_config: LutestConfig
+	project_config: LutestConfig,
+	config_path: string?
 ): { string }
 	const discovered = {} :: { string }
 	const seen = {} :: SeenMap
-	const cwd = path_utils.cwd()
-	const gitignore_rules = load_gitignore_rules(cwd)
+	const resolved_config_path = config.resolve_config_path(config_path)
+	const config_directory = path.dirname(resolved_config_path)
+	const gitignore_rules = load_gitignore_rules(config_directory)
 
 	for _, input in resolve_input_paths(paths, project_config) do
-		const resolved_path = resolve_input_path(input.path, cwd)
+		const input_directory = if input.source == 'config'
+			then config_directory
+			else path_utils.cwd()
+		const resolved_path =
+			resolve_input_path(input.path, input_directory)
 		if not fs.exists(resolved_path) then
 			error(
 				errors.configuration_error(
 					`Configured discovery root '{input.path}' does not exist.`,
 					{
-						where = path_utils.normalize_path(
-							path.join(
-								cwd,
-								'lutest.toml'
-							)
-						),
+						where = resolved_config_path,
 						how_to_fix = 'Update the configured discovery roots to reference existing files or directories.',
 					}
 				),
@@ -567,7 +578,7 @@ const function discover_all_files(
 				discovered,
 				seen,
 				resolved_path,
-				cwd,
+				input_directory,
 				gitignore_rules,
 				project_config
 			)
@@ -576,7 +587,7 @@ const function discover_all_files(
 				discovered,
 				seen,
 				resolved_path,
-				cwd,
+				input_directory,
 				gitignore_rules,
 				project_config
 			)
@@ -619,6 +630,75 @@ t.test('should use config roots when no input paths are provided', function()
 	assert(resolved[2].path == 'tests')
 	assert(resolved[2].source == 'config')
 end)
+
+t.test(
+	'should resolve explicit config roots from the config directory',
+	function()
+		const temp_root = path_utils.resolve_path(
+			path_utils.cwd(),
+			'dist/test-tmp/discovery-nested-config'
+		)
+		const config_directory = path_utils.normalize_path(
+			path.join(temp_root, 'games', 'arena')
+		)
+		const config_path = path_utils.normalize_path(
+			path.join(config_directory, 'lutest.toml')
+		)
+		const suite_path = path_utils.normalize_path(
+			path.join(config_directory, 'src', 'inventory.luau')
+		)
+
+		if fs.exists(temp_root) then
+			fs.removeDirectory(temp_root, { recursive = true })
+		end
+
+		fs.createDirectory(
+			path.dirname(suite_path),
+			{ makeParents = true }
+		)
+		fs.writeStringToFile(
+			config_path,
+			[[
+[discovery.lute]
+require = "@lutest_release"
+roots = ["src"]
+]]
+		)
+		fs.writeStringToFile(
+			suite_path,
+			[[
+local t = require "@lutest_release"
+
+t.test("should pass", function()
+	assert(true)
+end)
+]]
+		)
+
+		const discovered = discover_files({}, config_path)
+		assert(#discovered == 1)
+		assert(discovered[1] == path_utils.normalize_path(suite_path))
+
+		fs.removeDirectory(
+			path.dirname(suite_path),
+			{ recursive = true }
+		)
+		local message = nil :: string?
+		const ok = xpcall(function()
+			discover_files({}, config_path)
+		end, function(err)
+			message = tostring(err)
+			return message
+		end)
+
+		assert(ok == false)
+		assert(message ~= nil)
+		message = errors.strip_ansi(errors.display_error(message))
+		assert(message:find(config_path, 1, true) ~= nil)
+
+		fs.removeDirectory(temp_root, { recursive = true })
+	end
+)
 
 t.test('should discover only .luau modules requiring the test lib', function()
 	const temp_root =

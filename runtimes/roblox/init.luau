@@ -53,7 +53,7 @@ const function discover_files(
 	config_path: string?
 ): { string }
 	const discovery_config = (config.load_roblox_config(config_path))
-	return discovery.discover_suites(paths, discovery_config)
+	return discovery.discover_suites(paths, discovery_config, config_path)
 end
 
 const function run(
@@ -63,12 +63,14 @@ const function run(
 ): { TestSuiteResult }
 	const discovery_config, roblox_config =
 		config.load_roblox_config(config_path)
-	const suites = discovery.discover_suites(paths, discovery_config)
+	const suites =
+		discovery.discover_suites(paths, discovery_config, config_path)
 	if #suites == 0 then return {} end
 
 	const all_files = discovery.discover_all_files(
 		discovery_config.roots,
-		discovery_config
+		discovery_config,
+		config_path
 	)
 	const current_progress = progress.default_progress()
 	current_progress.update 'preparing bundle'

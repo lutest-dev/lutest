@@ -20,10 +20,48 @@ type DoctorOptions = {
 	config_exists: boolean,
 	has_api_key: boolean,
 	bundle_available: boolean,
+	root_exists: ((root: string) -> boolean)?,
 }
 
 const function has_discovery_config(runtime: LutestConfig?): boolean
 	return runtime ~= nil and runtime.require ~= '' and #runtime.roots > 0
+end
+
+const function is_glob_root(root: string): boolean
+	return root:find('*', 1, true) ~= nil
+		or root:find('?', 1, true) ~= nil
+		or root:find('[', 1, true) ~= nil
+end
+
+const function unavailable_literal_roots(
+	runtime: LutestConfig,
+	root_exists: (root: string) -> boolean
+): { string }
+	const unavailable = {} :: { string }
+	for _, root in runtime.roots do
+		if is_glob_root(root) or root_exists(root) then continue end
+		table.insert(unavailable, root)
+	end
+	return unavailable
+end
+
+const function append_unavailable_roots(
+	lines: { string },
+	runtime_name: string,
+	roots: { string }
+): boolean
+	if #roots == 0 then return true end
+
+	table.insert(lines, ui.failed(`{runtime_name} runtime not ready`))
+	for _, root in roots do
+		table.insert(lines, `  unavailable root: {root}`)
+	end
+	table.insert(lines, '')
+	table.insert(
+		lines,
+		ui.warned 'Create the directory or update discovery.roots in lutest.toml.'
+	)
+	return false
 end
 
 const function has_roblox_config(project: ProjectConfig): boolean
@@ -47,7 +85,8 @@ end
 
 const function append_lute_runtime(
 	lines: { string },
-	project: ProjectConfig
+	project: ProjectConfig,
+	root_exists: (root: string) -> boolean
 ): boolean
 	if project.lute == nil then return true end
 	if not has_discovery_config(project.lute) then
@@ -64,6 +103,16 @@ const function append_lute_runtime(
 
 	const runtime = project.lute :: LutestConfig
 	table.insert(lines, '')
+	if
+		not append_unavailable_roots(
+			lines,
+			'Lute',
+			unavailable_literal_roots(runtime, root_exists)
+		)
+	then
+		return false
+	end
+	table.insert(lines, '')
 	table.insert(lines, ui.passed 'Lute runtime ready')
 	table.insert(lines, `  roots: {table.concat(runtime.roots, ', ')}`)
 	return true
@@ -72,7 +121,8 @@ end
 const function append_roblox_runtime(
 	lines: { string },
 	project: ProjectConfig,
-	options: DoctorOptions
+	options: DoctorOptions,
+	root_exists: (root: string) -> boolean
 ): boolean
 	if project.roblox == nil and project.roblox_options == nil then
 		return true
@@ -95,6 +145,15 @@ const function append_roblox_runtime(
 
 	const runtime = project.roblox :: LutestConfig
 	const roblox = project.roblox_options :: RobloxConfig
+	if
+		not append_unavailable_roots(
+			lines,
+			'Roblox',
+			unavailable_literal_roots(runtime, root_exists)
+		)
+	then
+		return false
+	end
 	if not options.has_api_key then
 		table.insert(lines, ui.failed 'Roblox runtime not ready')
 		table.insert(lines, '  API key: missing')
@@ -132,9 +191,14 @@ const function inspect(
 ): DoctorReport
 	local lines = {} :: { string }
 	append_configuration(lines, options)
+	const root_exists = options.root_exists
+		or function(root)
+			return fs.exists(path_utils.resolve_from_cwd(root))
+		end
 
-	const lute_ready = append_lute_runtime(lines, project)
-	const roblox_ready = append_roblox_runtime(lines, project, options)
+	const lute_ready = append_lute_runtime(lines, project, root_exists)
+	const roblox_ready =
+		append_roblox_runtime(lines, project, options, root_exists)
 	const ready = lute_ready and roblox_ready
 
 	return {
@@ -183,6 +247,9 @@ t.test('should report configured runtimes as ready', function()
 		config_exists = true,
 		has_api_key = true,
 		bundle_available = true,
+		root_exists = function()
+			return true
+		end,
 	})
 
 	assert(report.ready == true)
@@ -211,6 +278,9 @@ t.test(
 			config_exists = true,
 			has_api_key = false,
 			bundle_available = true,
+			root_exists = function()
+				return true
+			end,
 		})
 
 		assert(report.ready == false)
@@ -221,6 +291,61 @@ t.test(
 		)
 	end
 )
+
+t.test('should report missing literal discovery roots', function()
+	const missing_root = 'dist/test-tmp/doctor-missing-root'
+	const report = inspect({
+		lute = {
+			roots = { missing_root },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = true,
+		},
+		roblox = nil,
+		roblox_options = nil,
+	}, {
+		config_exists = true,
+		has_api_key = true,
+		bundle_available = true,
+	})
+
+	assert(report.ready == false)
+	assert(report.output:find('Lute runtime not ready', 1, true) ~= nil)
+	assert(
+		report.output:find(`unavailable root: {missing_root}`, 1, true)
+			~= nil
+	)
+	assert(
+		report.output:find(
+			'Create the directory or update discovery.roots in lutest.toml.',
+			1,
+			true
+		) ~= nil
+	)
+end)
+
+t.test('should not validate glob discovery roots as literal paths', function()
+	const report = inspect({
+		lute = {
+			roots = { 'src/**/*.luau' },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = true,
+		},
+		roblox = nil,
+		roblox_options = nil,
+	}, {
+		config_exists = true,
+		has_api_key = true,
+		bundle_available = true,
+		root_exists = function()
+			return false
+		end,
+	})
+
+	assert(report.ready == true)
+	assert(report.output:find('Lute runtime ready', 1, true) ~= nil)
+end)
 
 return {
 	inspect = inspect,

@@ -1,5 +1,5 @@
 [package]
-name = "lutest-dev/lutest"
+name = "cayasde/lutest"
 description = "Test runner for Luau code, with a focus on lute and Roblox runtimes."
 version = "0.6.0"
 license = "MIT"

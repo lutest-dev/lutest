@@ -92,13 +92,13 @@ jobs:
           WALLY_AUTH_TOKEN: ${{ secrets.WALLY_AUTH_TOKEN }}
           VERSION: ${{ steps.version.outputs.value }}
         run: |
-          metadata_url="https://api.wally.run/v1/package-metadata/lutest-dev/lutest"
+          metadata_url="https://api.wally.run/v1/package-metadata/cayasde/lutest"
           metadata="$(curl --fail --silent "$metadata_url" || true)"
           if [ -n "$metadata" ] && jq --exit-status \
             --arg version "$VERSION" \
             'any(.versions[]; .package.version == $version)' \
             <<< "$metadata" > /dev/null; then
-            echo "Wally package lutest-dev/lutest@$VERSION already exists."
+            echo "Wally package cayasde/lutest@$VERSION already exists."
             exit 0
           fi
 

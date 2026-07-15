@@ -26,8 +26,11 @@ async function updateFile(path, replacements) {
   await writeFile(path, output);
 }
 
+await updateFile(resolve(root, 'core/version.luau'), [
+  [/const VALUE = '[^']+'/, `const VALUE = '${version}'`],
+]);
+
 await updateFile(resolve(root, 'cli/version.luau'), [
-  [/const VERSION = '[^']+'/, `const VERSION = '${version}'`],
   [
     /assert\(format_version\(\) == 'lutest [^']+'\)/,
     `assert(format_version() == 'lutest ${version}')`,

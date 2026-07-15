@@ -1,5 +1,6 @@
 const io = require '@std/io'
 const task = require '@std/task'
+const version = require '@core/version'
 const output = require '@self/output'
 const tty = require '@lutest/utils/tty'
 const ui = require '@lutest/utils/ui'
@@ -97,12 +98,13 @@ t.test('should print stable progress lines without a TTY', function()
 	progress.update 'running tests'
 	progress.update 'collecting results'
 	const plain_output = table.concat(output, '\n'):gsub('\27%[[%d;]*m', '')
+	const prefix = `lutest(roblox)@{version.VALUE}`
 	assert(plain_output == table.concat({
-		'lutest(roblox)@0.5.0 [1/5] preparing bundle',
-		'lutest(roblox)@0.5.0 [2/5] uploading bundle',
-		'lutest(roblox)@0.5.0 [3/5] starting session',
-		'lutest(roblox)@0.5.0 [4/5] running tests',
-		'lutest(roblox)@0.5.0 [5/5] collecting results',
+		`{prefix} [1/5] preparing bundle`,
+		`{prefix} [2/5] uploading bundle`,
+		`{prefix} [3/5] starting session`,
+		`{prefix} [4/5] running tests`,
+		`{prefix} [5/5] collecting results`,
 	}, '\n'))
 end)
 

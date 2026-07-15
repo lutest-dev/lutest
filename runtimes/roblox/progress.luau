@@ -1,5 +1,6 @@
 const io = require '@std/io'
 const task = require '@std/task'
+const version = require '@core/version'
 const tty = require '@lutest/utils/tty'
 const ui = require '@lutest/utils/ui'
 const t = require '@lutest_release'
@@ -8,9 +9,19 @@ type Output = (message: string) -> ()
 
 local FRAMES =
 	{ '⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏' }
+const STAGE_INDEX = {
+	['preparing bundle'] = 1,
+	['uploading bundle'] = 2,
+	['starting session'] = 3,
+	['running tests'] = 4,
+	['collecting results'] = 5,
+}
+const STAGE_COUNT = 5
 
 const function plain_message(stage: string): string
-	return `> Roblox - {stage}`
+	const index = STAGE_INDEX[stage]
+	assert(index ~= nil, `Unknown Roblox progress stage '{stage}'.`)
+	return `lutest({ui.accent 'roblox'})@{version.VALUE} [{index}/{STAGE_COUNT}] {stage}`
 end
 
 const function create(is_tty: boolean, output: Output?)
@@ -76,12 +87,23 @@ const function default_progress()
 end
 
 t.test('should print stable progress lines without a TTY', function()
-	local output = ''
+	const output = {} :: { string }
 	const progress = create(false, function(message)
-		output = message
+		table.insert(output, message)
 	end)
-	progress.update 'Preparing bundle'
-	assert(output == '> Roblox - Preparing bundle')
+	progress.update 'preparing bundle'
+	progress.update 'uploading bundle'
+	progress.update 'starting session'
+	progress.update 'running tests'
+	progress.update 'collecting results'
+	const plain_output = table.concat(output, '\n'):gsub('\27%[[%d;]*m', '')
+	assert(plain_output == table.concat({
+		'lutest(roblox)@0.5.0 [1/5] preparing bundle',
+		'lutest(roblox)@0.5.0 [2/5] uploading bundle',
+		'lutest(roblox)@0.5.0 [3/5] starting session',
+		'lutest(roblox)@0.5.0 [4/5] running tests',
+		'lutest(roblox)@0.5.0 [5/5] collecting results',
+	}, '\n'))
 end)
 
 return {

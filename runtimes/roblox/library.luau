@@ -4,8 +4,8 @@ const t = require '@lutest_release'
 
 const transform_source = transform.transform_source
 
-const function files(layout: transform.LibraryLayout): { transform.LibraryFile }
-	return transform.files(layout, embedded_assets.library)
+const function files(): { transform.LibraryFile }
+	return transform.files('bundle', embedded_assets.library)
 end
 
 t.test('should transform the package entry for a Roblox module tree', function()

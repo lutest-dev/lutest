@@ -5,7 +5,6 @@ const t = require '@lutest_release'
 export type ParsedCommand = {
 	kind: 'help'
 		| 'doctor'
-		| 'install-package'
 		| 'setup'
 		| 'test'
 		| 'todo'
@@ -15,7 +14,6 @@ export type ParsedCommand = {
 	runtime: 'lute' | 'roblox'?,
 	config_path: string?,
 	dry_run: boolean?,
-	output: string?,
 	message: string?,
 }
 
@@ -155,33 +153,6 @@ const function parse_command(args: { string }): ParsedCommand
 		}
 	end
 
-	if command == 'install-package' then
-		if #args == 1 then return { kind = 'install-package' } end
-
-		const output = args[2]
-		if #args == 3 and output == '--output' and args[3] ~= '' then
-			return {
-				kind = 'install-package',
-				output = args[3],
-			}
-		end
-		if
-			#args == 2
-			and output:sub(1, 9) == '--output='
-			and #output > 9
-		then
-			return {
-				kind = 'install-package',
-				output = output:sub(10),
-			}
-		end
-
-		return {
-			kind = 'error',
-			message = errors.usage_error 'Invalid `install-package` arguments.',
-		}
-	end
-
 	if command == 'doctor' then
 		local paths = nil :: { string }?
 		local runtime = nil :: ('lute' | 'roblox')?
@@ -254,7 +225,6 @@ const function parse_command(args: { string }): ParsedCommand
 	const suggested_command = suggest.closest_match(command, {
 		'help',
 		'doctor',
-		'install-package',
 		'setup',
 		'test',
 		'todo',
@@ -345,34 +315,17 @@ t.test('should reject setup arguments', function()
 	)
 end)
 
-t.test('should parse an explicit package output directory', function()
-	const command = parse_command {
-		'install-package',
-		'--output',
-		'src/Packages',
-	}
-
-	assert(command.kind == 'install-package')
-	assert(command.output == 'src/Packages')
-end)
-
-t.test('should reject invalid package arguments', function()
-	const command = parse_command { 'install-package', 'lutest' }
+t.test('should reject the removed install package command', function()
+	const command = parse_command { 'install-package' }
 
 	assert(command.kind == 'error')
 	assert(
 		(command.message :: string):find(
-			'Invalid `install-package` arguments.',
+			'Unknown command \'install-package\'.',
 			1,
 			true
 		) ~= nil
 	)
-end)
-
-t.test('should reject an empty package output directory', function()
-	const command = parse_command { 'install-package', '--output=' }
-
-	assert(command.kind == 'error')
 end)
 
 t.test('should parse todo subcommand paths', function()

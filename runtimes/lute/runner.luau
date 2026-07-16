@@ -74,6 +74,10 @@ end
 const function create_embedded_release_api(): ReleaseApi
 	local active_scope = nil :: core.TestScope?
 
+	const function is_collecting(): boolean
+		return context.get_register() ~= nil or registry.is_active()
+	end
+
 	const function scope_or_error(): core.TestScope
 		const scope = active_scope
 		if scope ~= nil then return scope end
@@ -82,8 +86,8 @@ const function create_embedded_release_api(): ReleaseApi
 	end
 
 	const function register_spec(spec: TestSpec)
+		if not is_collecting() then return end
 		if context.register(spec) then return end
-		if not registry.is_active() then return end
 
 		registry.register(spec)
 	end
@@ -136,6 +140,7 @@ const function create_embedded_release_api(): ReleaseApi
 	end
 
 	const function suite(name: string, register: () -> ())
+		if not is_collecting() then return end
 		if active_scope ~= nil then
 			error('Nested t.suite() calls are not supported.', 2)
 		end
@@ -157,18 +162,22 @@ const function create_embedded_release_api(): ReleaseApi
 	end
 
 	const function before_all(hook: core.HookFn)
+		if not is_collecting() then return end
 		table.insert(scope_or_error().hooks.before_all, hook)
 	end
 
 	const function before_each(hook: core.HookFn)
+		if not is_collecting() then return end
 		table.insert(scope_or_error().hooks.before_each, hook)
 	end
 
 	const function after_each(hook: core.HookFn)
+		if not is_collecting() then return end
 		table.insert(scope_or_error().hooks.after_each, hook)
 	end
 
 	const function after_all(hook: core.HookFn)
+		if not is_collecting() then return end
 		table.insert(scope_or_error().hooks.after_all, hook)
 	end
 
@@ -498,6 +507,34 @@ return dependency
 	assert(tests[1].name == 'suite test')
 
 	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should keep the embedded API inert outside collection', function()
+	const previous_hook = context.get_register()
+	const api = create_embedded_release_api()
+	local suite_called = false
+
+	context.clear_register()
+	registry.clear()
+
+	api.test('run test', function() end)
+	api.skip('skip test', function() end)
+	api.only('only test', function() end)
+	api.todo 'todo test'
+	api.before_all(function() end)
+	api.before_each(function() end)
+	api.after_each(function() end)
+	api.after_all(function() end)
+	api.suite('ignored suite', function()
+		suite_called = true
+	end)
+
+	const specs = registry.collect 'inactive-module'
+	context.set_register(previous_hook)
+	registry.clear()
+
+	assert(suite_called == false)
+	assert(#specs == 0)
 end)
 
 t.test('should respect the configured test lib require path', function()

@@ -11,6 +11,10 @@ export type TestScope = types.TestScope
 
 local active_scope = nil :: TestScope?
 
+const function is_collecting(): boolean
+	return context.get_register() ~= nil or registry.is_active()
+end
+
 const function scope_or_error(): TestScope
 	const scope = active_scope
 	if scope ~= nil then return scope end
@@ -19,9 +23,9 @@ const function scope_or_error(): TestScope
 end
 
 const function register_spec(spec: TestSpec)
+	if not is_collecting() then return end
 	if context.register(spec) then return end
 
-	if not registry.is_active() then return end
 	registry.register(spec)
 end
 
@@ -73,6 +77,7 @@ const function todo(name: string): TestSpec
 end
 
 const function suite(name: string, register: () -> ())
+	if not is_collecting() then return end
 	if active_scope ~= nil then
 		error('Nested t.suite() calls are not supported.', 2)
 	end
@@ -94,18 +99,22 @@ const function suite(name: string, register: () -> ())
 end
 
 const function before_all(hook: HookFn)
+	if not is_collecting() then return end
 	table.insert(scope_or_error().hooks.before_all, hook)
 end
 
 const function before_each(hook: HookFn)
+	if not is_collecting() then return end
 	table.insert(scope_or_error().hooks.before_each, hook)
 end
 
 const function after_each(hook: HookFn)
+	if not is_collecting() then return end
 	table.insert(scope_or_error().hooks.after_each, hook)
 end
 
 const function after_all(hook: HookFn)
+	if not is_collecting() then return end
 	table.insert(scope_or_error().hooks.after_all, hook)
 end
 
@@ -149,6 +158,33 @@ t.test(
 		assert(registry.is_active() == false)
 	end
 )
+
+t.test('should keep test definitions inert outside collection', function()
+	const previous_hook = context.get_register()
+	local suite_called = false
+
+	context.clear_register()
+	registry.clear()
+
+	test('run test', function() end)
+	skip('skip test', function() end)
+	only('only test', function() end)
+	todo 'todo test'
+	before_all(function() end)
+	before_each(function() end)
+	after_each(function() end)
+	after_all(function() end)
+	suite('ignored suite', function()
+		suite_called = true
+	end)
+
+	const specs = registry.collect 'inactive-module'
+	context.set_register(previous_hook)
+	registry.clear()
+
+	assert(suite_called == false)
+	assert(#specs == 0)
+end)
 
 t.test(
 	'should register run, skip, only, and todo specs with the expected public shape',
@@ -240,7 +276,10 @@ t.test('should register suite tests with their lexical scope', function()
 	registry.begin 'suite-module'
 
 	suite('Inventory', function()
+		before_all(function() end)
 		before_each(function() end)
+		after_each(function() end)
+		after_all(function() end)
 		test('adds an item', function() end)
 	end)
 
@@ -251,69 +290,80 @@ t.test('should register suite tests with their lexical scope', function()
 	const scope = specs[1].scope
 	assert(scope ~= nil)
 	assert(scope.name == 'Inventory')
+	assert(#scope.hooks.before_all == 1)
 	assert(#scope.hooks.before_each == 1)
+	assert(#scope.hooks.after_each == 1)
+	assert(#scope.hooks.after_all == 1)
 	registry.clear()
 end)
 
-t.test('should reject hooks outside a suite', function()
+t.test('should reject hooks outside a suite during collection', function()
+	const previous_hook = context.get_register()
+	context.clear_register()
+	registry.clear()
+	registry.begin 'active-module'
+
 	const ok, message = pcall(function()
 		before_each(function() end)
 	end)
+
+	context.set_register(previous_hook)
+	registry.clear()
 
 	assert(ok == false)
 	assert(tostring(message):find('inside t.suite()', 1, true) ~= nil)
 end)
 
 const api = {
-	--- Registers a test that runs normally.
+	--- Registers a test that runs normally while Lutest is collecting a test suite.
 	---
 	--- @param name string -- Test name shown in reports.
 	--- @param fn () -> () -- Callback run as the test body.
 	--- @return TestSpec -- Registered test specification.
 	test = test,
-	--- Registers a test that is skipped.
+	--- Registers a test that is skipped while Lutest is collecting a test suite.
 	---
 	--- @param name string -- Test name shown in reports.
 	--- @param fn () -> () -- Test callback, which is not run.
 	--- @return TestSpec -- Registered test specification.
 	skip = skip,
-	--- Registers a focused test.
+	--- Registers a focused test while Lutest is collecting a test suite.
 	---
 	--- Focused tests run while normal tests in the same run are skipped.
 	--- @param name string -- Test name shown in reports.
 	--- @param fn () -> () -- Callback run as the test body.
 	--- @return TestSpec -- Registered test specification.
 	only = only,
-	--- Registers a planned test.
+	--- Registers a planned test while Lutest is collecting a test suite.
 	---
 	--- @param name string -- Test name shown in reports.
 	--- @return TestSpec -- Registered todo specification without a test body.
 	todo = todo,
-	--- Groups tests and lifecycle hooks under `name`.
+	--- Groups tests and lifecycle hooks under `name` while Lutest is collecting a test suite.
 	---
 	--- @param name string -- Suite name shown in reports.
 	--- @param register () -> () -- Callback that synchronously registers tests and hooks.
-	--- Nested suites are not supported.
+	--- Does nothing outside collection. Nested suites are not supported.
 	suite = suite,
-	--- Registers a hook that runs once before the suite's tests.
+	--- Registers a hook that runs once before the suite's tests during collection.
 	---
 	--- @param hook HookFn -- Callback run before all suite tests.
-	--- Must be called inside a suite callback.
+	--- Does nothing outside collection. Must be called inside a suite callback while collecting.
 	before_all = before_all,
-	--- Registers a hook that runs before each suite test.
+	--- Registers a hook that runs before each suite test during collection.
 	---
 	--- @param hook HookFn -- Callback run before each suite test.
-	--- Must be called inside a suite callback.
+	--- Does nothing outside collection. Must be called inside a suite callback while collecting.
 	before_each = before_each,
-	--- Registers a hook that runs after each suite test.
+	--- Registers a hook that runs after each suite test during collection.
 	---
 	--- @param hook HookFn -- Callback run after each suite test.
-	--- Must be called inside a suite callback.
+	--- Does nothing outside collection. Must be called inside a suite callback while collecting.
 	after_each = after_each,
-	--- Registers a hook that runs once after the suite's tests.
+	--- Registers a hook that runs once after the suite's tests during collection.
 	---
 	--- @param hook HookFn -- Callback run after all suite tests.
-	--- Must be called inside a suite callback.
+	--- Does nothing outside collection. Must be called inside a suite callback while collecting.
 	after_all = after_all,
 }
 

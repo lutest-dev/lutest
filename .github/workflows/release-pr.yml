@@ -36,12 +36,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Prepare Release PR title
+        id: release-details
+        run: |
+          pnpm exec changeset status --output="$RUNNER_TEMP/release-plan.json"
+          node scripts/release-pr-title.mjs "$RUNNER_TEMP/release-plan.json" >> "$GITHUB_OUTPUT"
+
       - name: Create or update Release PR
         uses: changesets/action@v1
         with:
           version: pnpm release:version
           commit: "chore(release): prepare next release"
-          title: "chore(release): prepare next release"
+          title: ${{ steps.release-details.outputs.title }}
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PR_TOKEN }}
           HUSKY: "0"

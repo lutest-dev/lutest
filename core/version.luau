@@ -1,4 +1,4 @@
-const VALUE = '0.6.0'
+const VALUE = '0.6.1'
 
 return {
 	VALUE = VALUE,

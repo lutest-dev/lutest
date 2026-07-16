@@ -1,5 +1,11 @@
 # lutest
 
+## 0.6.1
+
+### Patch Changes
+
+- [#36](https://github.com/lutest-dev/lutest/pull/36) [`00958e3`](https://github.com/lutest-dev/lutest/commit/00958e345ea2ba11c70baab0a485483f5749c480) Thanks [@cayasde](https://github.com/cayasde)! - Fix the Wally package entrypoint and preserve its public API during publication.
+
 ## 0.6.0
 
 ### Minor Changes

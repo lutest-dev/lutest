@@ -6,7 +6,6 @@ const config = require '@runtimes/lute/config'
 const discovery = require '@runtimes/lute/discovery'
 const t = require '@lutest_release'
 const path_utils = require '@lutest/utils/path'
-const ui = require '@lutest/utils/ui'
 const fs = require '@std/fs'
 const luau = require '@std/luau'
 const path = require '@std/path'
@@ -342,20 +341,18 @@ const function load_module(
 	return result, tests
 end
 
-const function warn_missing_tests(module_path: string)
-	print(
-		ui.warned(
-			`No tests registered in '{path_utils.relative_to_cwd(
-				module_path
-			)}'.`
-		)
-	)
-end
-
 const function create_suite(module_path: string, tests: { TestSpec }): TestSuite
+	local warnings = nil :: { string }?
+	if #tests == 0 then
+		warnings = {
+			`{path_utils.relative_to_cwd(module_path)} was discovered as a test suite but registered no tests.`,
+		}
+	end
+
 	return {
 		name = path_utils.relative_to_cwd(module_path),
 		tests = tests,
+		warnings = warnings,
 	}
 end
 
@@ -371,11 +368,6 @@ const function collect_suites(
 			path_utils.resolve_from_cwd(module_path)
 		const _, tests =
 			load_module(resolved_module_path, project_config)
-		if #tests == 0 then
-			warn_missing_tests(resolved_module_path)
-			continue
-		end
-
 		table.insert(suites, create_suite(resolved_module_path, tests))
 	end
 
@@ -399,11 +391,6 @@ const function run_file(
 	const project_config = config.load_config(config_path)
 	const resolved_module_path = path_utils.resolve_from_cwd(module_path)
 	const _, tests = load_module(resolved_module_path, project_config)
-	if #tests == 0 then
-		warn_missing_tests(resolved_module_path)
-		return {}
-	end
-
 	return { core.run(create_suite(resolved_module_path, tests)) }
 end
 
@@ -700,6 +687,32 @@ return {
 	assert((result :: any).string_type == 'table')
 	assert((result :: any).table_type == 'table')
 	assert(#tests == 0)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should warn when a discovered suite registers no tests', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'runner-empty-suite')
+	const suite_path =
+		path_utils.normalize_path(path.join(temp_cwd, 'suite.luau'))
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(suite_path, 'return {}')
+
+	const results = run_file(suite_path)
+	assert(#results == 1)
+	assert(results[1].warnings ~= nil)
+	assert(
+		(results[1].warnings :: { string })[1]
+			== 'dist/test-tmp/runner-empty-suite/suite.luau was discovered as a test suite but registered no tests.'
+	)
 
 	fs.removeDirectory(temp_cwd, { recursive = true })
 end)

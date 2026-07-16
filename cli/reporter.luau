@@ -112,6 +112,14 @@ const function collect_run_result(results: { TestSuiteResult }): RunResult
 	}
 end
 
+const function has_warnings(results: { TestSuiteResult }): boolean
+	for _, result in results do
+		if #(result.warnings or {}) > 0 then return true end
+	end
+
+	return false
+end
+
 const function append_failed_details(
 	lines: { string },
 	suite_result: TestSuiteResult
@@ -150,7 +158,11 @@ const function format_run_result(
 		summary ..= `  {ui.failed(`{lifecycle_count} hook failures`)}`
 	end
 
-	if run_result.failed_tests == 0 and lifecycle_count == 0 then
+	if
+		run_result.failed_tests == 0
+		and lifecycle_count == 0
+		and not has_warnings(results)
+	then
 		return if prefix == nil then summary else `{prefix} {summary}`
 	end
 	const lines =
@@ -171,6 +183,13 @@ const function format_run_result(
 				`  {failure.error_message:gsub('\n', '\n  ')}`
 			)
 			table.insert(lines, '')
+		end
+	end
+
+	for _, suite_result in results do
+		for _, warning in suite_result.warnings or {} do
+			if lines[#lines] ~= '' then table.insert(lines, '') end
+			table.insert(lines, ui.warned(warning))
 		end
 	end
 
@@ -393,6 +412,36 @@ t.test('should format an empty run summary', function()
 	assert(output:find('0 todo', 1, true) == nil)
 	assert(output:find('\n', 1, true) == nil)
 end)
+
+t.test(
+	'should warn about discovered suites with no registered tests',
+	function()
+		const output = format_run_result {
+			{
+				name = 'src/inventory.luau',
+				total_tests = 0,
+				passed_tests = 0,
+				failed_tests = 0,
+				skipped_tests = 0,
+				todo_tests = 0,
+				results = {},
+				warnings = {
+					'src/inventory.luau was discovered as a test suite but registered no tests.',
+				},
+			},
+		}
+		const plain_output = output:gsub('\27%[[0-9;]*m', '')
+
+		assert(plain_output:find('+ 0 tests passed', 1, true) ~= nil)
+		assert(
+			plain_output:find(
+				'! src/inventory.luau was discovered as a test suite but registered no tests.',
+				1,
+				true
+			) ~= nil
+		)
+	end
+)
 
 t.test('should prefix a non-interactive run summary', function()
 	const output = format_run_result({

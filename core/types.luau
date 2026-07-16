@@ -67,6 +67,7 @@ export type TestResult = index<TestResultMap, TestResultKind>
 export type TestSuite = {
 	name: string,
 	tests: { TestSpec },
+	warnings: { string }?,
 }
 
 export type TestSuiteResult = {
@@ -78,6 +79,7 @@ export type TestSuiteResult = {
 	todo_tests: number,
 	results: { TestResult },
 	lifecycle_failures: { LifecycleFailure }?,
+	warnings: { string }?,
 }
 
 export type TestRunner = {

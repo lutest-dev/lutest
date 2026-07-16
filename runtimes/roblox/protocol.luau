@@ -23,6 +23,7 @@ export type TestSuiteResult = {
 	todo_tests: number,
 	results: { TestResult },
 	lifecycle_failures: { LifecycleFailure },
+	warnings: { string }?,
 }
 
 export type LoadFailure = {
@@ -148,6 +149,16 @@ const function decode_suite(value: json.Value): TestSuiteResult
 			})
 		end
 	end
+	local warnings = nil :: { string }?
+	if suite.warnings ~= nil then
+		warnings = {}
+		for _, warning in array(suite.warnings, 'suite.warnings') do
+			table.insert(
+				warnings,
+				string_value(warning, 'suite warning')
+			)
+		end
+	end
 
 	return {
 		name = string_value(suite.name, 'suite.name'),
@@ -170,6 +181,7 @@ const function decode_suite(value: json.Value): TestSuiteResult
 		todo_tests = number_value(suite.todo_tests, 'suite.todo_tests'),
 		results = results,
 		lifecycle_failures = lifecycle_failures,
+		warnings = warnings,
 	}
 end
 
@@ -257,6 +269,18 @@ t.test('should decode a versioned remote result envelope', function()
 	}
 	assert(#decoded.results == 1)
 	assert(decoded.results[1].results[1].kind == 'passed')
+end)
+
+t.test('should decode warnings for empty test suites', function()
+	const decoded = decode_logs {
+		'LUTEST_RESULT_V1:{"version": 1, "results": [{"name": "src/inventory.luau", "total_tests": 0, "passed_tests": 0, "failed_tests": 0, "skipped_tests": 0, "todo_tests": 0, "results": [], "warnings": ["src/inventory.luau was discovered as a test suite but registered no tests."]}], "load_failures": []}',
+	}
+
+	assert(decoded.results[1].warnings ~= nil)
+	assert(
+		(decoded.results[1].warnings :: { string })[1]
+			== 'src/inventory.luau was discovered as a test suite but registered no tests.'
+	)
 end)
 
 t.test('should reject duplicate remote result envelopes', function()

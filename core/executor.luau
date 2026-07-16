@@ -216,6 +216,7 @@ const function run(suite: TestSuite, options: RunOptions?): TestSuiteResult
 		todo_tests = counts.todo,
 		results = results,
 		lifecycle_failures = lifecycle_failures,
+		warnings = suite.warnings,
 	}
 end
 

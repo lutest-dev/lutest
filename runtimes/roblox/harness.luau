@@ -156,7 +156,13 @@ for _, test_path in test_paths do
 		})
 		continue
 	end
-	table.insert(output.results, run_suite(test_path, tests))
+	local suite_result = run_suite(test_path, tests) :: any
+	if #tests == 0 then
+		suite_result.warnings = {
+			test_path .. " was discovered as a test suite but registered no tests.",
+		}
+	end
+	table.insert(output.results, suite_result)
 end
 
 print("LUTEST_RESULT_V1:" .. HttpService:JSONEncode(output))

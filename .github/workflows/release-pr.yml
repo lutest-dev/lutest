@@ -39,6 +39,11 @@ jobs:
       - name: Prepare Release PR title
         id: release-details
         run: |
+          if ! find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' -print -quit | grep -q .; then
+            echo 'title=chore(release): prepare next release' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           pnpm exec changeset status --output="$RUNNER_TEMP/release-plan.json"
           node scripts/release-pr-title.mjs "$RUNNER_TEMP/release-plan.json" >> "$GITHUB_OUTPUT"
 

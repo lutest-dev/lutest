@@ -158,12 +158,11 @@ for _, test_path in test_paths do
 	end
 	if
 		type(loaded) == "table"
-		and loaded.__lutest_suite_load_result == true
-		and loaded.ok == false
+		and loaded.__lutest_suite_load_failure == true
 	then
 		table.insert(output.load_failures, {
 			path = test_path,
-			error_message = tostring(loaded.value),
+			error_message = tostring(loaded.error_message),
 		})
 		continue
 	end
@@ -196,8 +195,8 @@ t.test('should generate a harness that emits one versioned envelope', function()
 	assert(source:find('existing:Destroy()', 1, true) ~= nil)
 	assert(source:find('runtime_context.set_register', 1, true) ~= nil)
 	assert(source:find('suite executor', 1, true) ~= nil)
-	assert(source:find('__lutest_suite_load_result', 1, true) ~= nil)
-	assert(source:find('loaded.value', 1, true) ~= nil)
+	assert(source:find('__lutest_suite_load_failure', 1, true) ~= nil)
+	assert(source:find('loaded.error_message', 1, true) ~= nil)
 	assert(source:find('test_api.set_runtime_register', 1, true) == nil)
 	assert(source:find('must be ModuleScripts', 1, true) ~= nil)
 end)

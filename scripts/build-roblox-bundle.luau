@@ -83,10 +83,16 @@ local function __lutest_suite()
 end
 
 local __lutest_ok, __lutest_value = xpcall(__lutest_suite, debug.traceback)
+if __lutest_ok then
+	if __lutest_value == nil then
+		return true
+	end
+	return __lutest_value
+end
+
 return {
-	__lutest_suite_load_result = true,
-	ok = __lutest_ok,
-	value = __lutest_value,
+	__lutest_suite_load_failure = true,
+	error_message = __lutest_value,
 }
 ]]
 	end

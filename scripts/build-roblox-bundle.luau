@@ -82,11 +82,12 @@ local function __lutest_suite()
 
 end
 
-local __lutest_export = __lutest_suite()
-if __lutest_export == nil then
-	return true
-end
-return __lutest_export
+local __lutest_ok, __lutest_value = xpcall(__lutest_suite, debug.traceback)
+return {
+	__lutest_suite_load_result = true,
+	ok = __lutest_ok,
+	value = __lutest_value,
+}
 ]]
 	end
 	module.Parent = parent

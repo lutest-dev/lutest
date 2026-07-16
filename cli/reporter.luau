@@ -128,8 +128,16 @@ const function append_failed_details(
 		if test_result.kind ~= 'failed' then continue end
 
 		const failed = test_result :: FailedTestResult
-		const source_line, message =
-			failed.error_message:match '^.-:(%d+):%s*(.*)$'
+		const is_suite_load_failure = failed.name:sub(
+			1,
+			#'load test suite:'
+		) == 'load test suite:'
+		local source_line = nil :: string?
+		local message = nil :: string?
+		if not is_suite_load_failure then
+			source_line, message =
+				failed.error_message:match '^.-:(%d+):%s*(.*)$'
+		end
 		const location = if source_line == nil
 			then suite_result.name
 			else `{suite_result.name}:{source_line}`
@@ -343,6 +351,43 @@ t.test(
 		assert(output:find('LutestBundle', 1, true) == nil)
 	end
 )
+
+t.test('should preserve raw suite load errors', function()
+	const raw_error = table.concat({
+		'LutestBundle.tests.inventory:8: attempt to index nil with \'price\'',
+		'LutestBundle.tests.inventory:8 function __lutest_suite',
+	}, '\n')
+	const output = format_run_result {
+		suite_result('tests/inventory.luau', {
+			total_tests = 1,
+			passed_tests = 0,
+			failed_tests = 1,
+			skipped_tests = 0,
+			todo_tests = 0,
+		}, {
+			failed_test(
+				'load test suite: tests/inventory.luau',
+				raw_error
+			),
+		}),
+	}
+
+	assert(output:find('tests/inventory.luau', 1, true) ~= nil)
+	assert(
+		output:find(
+			'LutestBundle.tests.inventory:8: attempt to index nil with \'price\'',
+			1,
+			true
+		) ~= nil
+	)
+	assert(
+		output:find(
+			'LutestBundle.tests.inventory:8 function __lutest_suite',
+			1,
+			true
+		) ~= nil
+	)
+end)
 
 t.test('should aggregate skipped counts across suites', function()
 	const output = format_run_result {

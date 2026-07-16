@@ -145,14 +145,25 @@ for _, test_path in test_paths do
 	runtime_context.set_register(function(spec)
 		table.insert(tests, spec)
 	end)
-	local ok, err = xpcall(function()
-		require(module)
+	local ok, loaded = xpcall(function()
+		return require(module)
 	end, debug.traceback)
 	runtime_context.set_register(nil)
 	if not ok then
 		table.insert(output.load_failures, {
 			path = test_path,
-			error_message = tostring(err),
+			error_message = tostring(loaded),
+		})
+		continue
+	end
+	if
+		type(loaded) == "table"
+		and loaded.__lutest_suite_load_result == true
+		and loaded.ok == false
+	then
+		table.insert(output.load_failures, {
+			path = test_path,
+			error_message = tostring(loaded.value),
 		})
 		continue
 	end
@@ -185,6 +196,8 @@ t.test('should generate a harness that emits one versioned envelope', function()
 	assert(source:find('existing:Destroy()', 1, true) ~= nil)
 	assert(source:find('runtime_context.set_register', 1, true) ~= nil)
 	assert(source:find('suite executor', 1, true) ~= nil)
+	assert(source:find('__lutest_suite_load_result', 1, true) ~= nil)
+	assert(source:find('loaded.value', 1, true) ~= nil)
 	assert(source:find('test_api.set_runtime_register', 1, true) == nil)
 	assert(source:find('must be ModuleScripts', 1, true) ~= nil)
 end)

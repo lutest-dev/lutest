@@ -69,6 +69,7 @@ jobs:
         run: mise --no-config exec github:JohnnyMorganz/StyLua@2.5.2 --command "stylua --check ."
 
       - name: Install Loom dependencies
+        if: github.head_ref != 'changeset-release/main'
         run: >-
           mise --no-config exec github:luau-lang/lute@1.0.0
           --command "lute pkg install"

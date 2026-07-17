@@ -101,6 +101,10 @@ const function transform_source(
 			'require \'@core/types\'',
 			'require(script.Parent.types)'
 		)
+		transformed = transformed:gsub(
+			'require \'@lib/context\'',
+			'require(script.Parent.Parent.context)'
+		)
 	else
 		transformed = transformed:gsub(
 			'require \'@core/types\'',

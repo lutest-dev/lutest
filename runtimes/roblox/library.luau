@@ -72,7 +72,11 @@ t.test('should prepare supplied sources as a Roblox package', function()
 		['lib/context.luau'] = 'return {}',
 		['lib/registry.luau'] = 'return {}',
 		['core/types.luau'] = 'return nil',
-		['core/executor.luau'] = 'const types = require \'@core/types\'\nreturn types',
+		['core/executor.luau'] = [[
+const types = require '@core/types'
+const context = require '@lib/context'
+return types
+]],
 	})
 
 	assert(files[1].relative == 'init.luau')
@@ -81,6 +85,13 @@ t.test('should prepare supplied sources as a Roblox package', function()
 	assert(
 		files[5].source:find('require(script.Parent.types)', 1, true)
 			~= nil
+	)
+	assert(
+		files[5].source:find(
+			'require(script.Parent.Parent.context)',
+			1,
+			true
+		) ~= nil
 	)
 end)
 

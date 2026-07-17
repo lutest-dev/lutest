@@ -70,13 +70,35 @@ jobs:
       - name: Check formatting
         run: mise --no-config exec github:JohnnyMorganz/StyLua@2.5.2 --command "stylua --check ."
 
-      - name: Bootstrap the published Lutest dependency
-        if: github.head_ref == 'changeset-release/main'
+      - name: Select a published Lutest dependency
+        if: >-
+          github.event_name == 'push' ||
+          github.head_ref == 'changeset-release/main'
         run: |
-          echo "LUTEST_BOOTSTRAP_TAG=$(git describe --tags --abbrev=0)" >> "$GITHUB_ENV"
+          target_tag=$(sed -n "s/.*rev = '\(v[^']*\)'.*/\1/p" loom.config.luau)
+
+          if [ -z "$target_tag" ]; then
+            echo "Could not read the Lutest dependency tag from loom.config.luau."
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$target_tag" > /dev/null; then
+            echo "Lutest $target_tag is already published."
+            exit 0
+          fi
+
+          bootstrap_tag=$(git describe --tags --abbrev=0)
+
+          if [ "$bootstrap_tag" = "$target_tag" ]; then
+            echo "Lutest $target_tag is unavailable and no earlier published tag was found."
+            exit 1
+          fi
+
+          echo "Bootstrapping unavailable $target_tag from published $bootstrap_tag."
+          echo "LUTEST_BOOTSTRAP_TAG=$bootstrap_tag" >> "$GITHUB_ENV"
 
       - name: Prepare release self-hosting dependencies
-        if: github.head_ref == 'changeset-release/main'
+        if: env.LUTEST_BOOTSTRAP_TAG != ''
         run: node scripts/prepare-release-selfhost.mjs
 
       - name: Install Loom dependencies

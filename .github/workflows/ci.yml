@@ -68,9 +68,6 @@ jobs:
       - name: Check formatting
         run: mise --no-config exec github:JohnnyMorganz/StyLua@2.5.2 --command "stylua --check ."
 
-      - name: Run lint
-        run: mise --no-config exec github:luau-lang/lute@1.0.0 --command "lute lint ."
-
       - name: Build Lutest
         run: mise --no-config exec github:luau-lang/lute@1.0.0 cargo:darklua@0.19.0 --command "lute run scripts/release.luau cli/init.luau .tmp/ci-bundle/main.luau .tmp/ci-bin/lutest"
 

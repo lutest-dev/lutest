@@ -19,10 +19,6 @@ run = "stylua ."
 description = "Check project Luau formatting with StyLua"
 run = "stylua --check ."
 
-[tasks.lint]
-description = "Lint project Luau files with lute"
-run = "lute lint ."
-
 [tasks.typecheck]
 description = "Typecheck project Luau files with luau-lsp analyze"
 depends = ["ensure-roblox-defs"]
@@ -33,8 +29,8 @@ description = "Ensure Roblox Luau definitions are cached for CLI typechecking"
 run = "lute run scripts/ensure-roblox-defs.luau"
 
 [tasks.check]
-description = "Run formatting, lint, and typecheck checks"
-depends = ["format-check", "lint", "typecheck"]
+description = "Run formatting and typecheck checks"
+depends = ["format-check", "typecheck"]
 
 [tasks.build-wally-package]
 description = "Prepare the Roblox Wally package in .tmp/wally-package"

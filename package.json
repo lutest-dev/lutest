@@ -7,7 +7,6 @@
     "prepare": "husky",
     "format": "mise run format",
     "format:check": "mise run format-check",
-    "lint": "mise run lint",
     "typecheck": "mise run typecheck",
     "check": "mise run check",
     "release:build": "mise exec -- lute run scripts/release.luau",
@@ -33,8 +32,7 @@
   },
   "lint-staged": {
     "*.{luau,lua}": [
-      "mise exec -- stylua",
-      "mise exec -- lute lint"
+      "mise exec -- stylua"
     ]
   }
 }

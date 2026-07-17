@@ -37,6 +37,10 @@ const function commands(): { SetupCommand }
 		name = 'Loom dependencies',
 		args = { 'mise', 'exec', '--', 'lute', 'pkg', 'install' },
 	})
+	add_command_if_manifest_exists(setup_commands, '.config.luau', {
+		name = 'Lute type definitions',
+		args = { 'mise', 'exec', '--', 'lute', 'setup' },
+	})
 	add_command_if_manifest_exists(
 		setup_commands,
 		'scripts/ensure-roblox-defs.luau',

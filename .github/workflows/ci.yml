@@ -73,6 +73,11 @@ jobs:
           mise --no-config exec github:luau-lang/lute@1.0.0
           --command "lute pkg install"
 
+      - name: Install Lute type definitions
+        run: >-
+          mise --no-config exec github:luau-lang/lute@1.0.0
+          --command "lute setup"
+
       - name: Run typecheck
         run: mise run typecheck
 

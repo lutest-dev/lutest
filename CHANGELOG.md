@@ -1,5 +1,31 @@
 # lutest
 
+## 0.7.0
+
+### Minor Changes
+
+- [#54](https://github.com/lutest-dev/lutest/pull/54) [`6c2be75`](https://github.com/lutest-dev/lutest/commit/6c2be750f0fe9d366c1f9c418f21eb83351d45f4) Thanks [@cayasde](https://github.com/cayasde)! - Keep test definitions inert when Lutest is not collecting a test suite.
+
+- [#61](https://github.com/lutest-dev/lutest/pull/61) [`cd9a203`](https://github.com/lutest-dev/lutest/commit/cd9a20361177c1e05c145da8d19d141b097c69e4) Thanks [@cayasde](https://github.com/cayasde)! - Add `lutest debug bundle` to inspect the Roblox test bundle layout without uploading or running tests.
+
+- [#57](https://github.com/lutest-dev/lutest/pull/57) [`befb942`](https://github.com/lutest-dev/lutest/commit/befb9428f6697f3537edf2b30f7151c50af4c1fa) Thanks [@cayasde](https://github.com/cayasde)! - Expose `t.is_running()` to detect active Lutest sessions.
+
+- [#53](https://github.com/lutest-dev/lutest/pull/53) [`da338c1`](https://github.com/lutest-dev/lutest/commit/da338c1f30c1b6640c63a0a101a07927fdb7eb64) Thanks [@cayasde](https://github.com/cayasde)! - Warn when a discovered test suite registers no tests.
+
+### Patch Changes
+
+- [#62](https://github.com/lutest-dev/lutest/pull/62) [`74bd336`](https://github.com/lutest-dev/lutest/commit/74bd336a1b8df0c9382db470bba798366a3cf7a6) Thanks [@cayasde](https://github.com/cayasde)! - Present CLI help as a grouped command reference.
+
+- [#59](https://github.com/lutest-dev/lutest/pull/59) [`e08e178`](https://github.com/lutest-dev/lutest/commit/e08e1781a1debf3921230040b1ad731aa906301e) Thanks [@cayasde](https://github.com/cayasde)! - Publish a `Lib.rbxm` Roblox library asset alongside each GitHub Release.
+
+- [#56](https://github.com/lutest-dev/lutest/pull/56) [`6e18d10`](https://github.com/lutest-dev/lutest/commit/6e18d10fcf2e8efd483a6dc4a432491196d128f5) Thanks [@cayasde](https://github.com/cayasde)! - Preserve original suite load errors and tracebacks from Roblox test runs.
+
+- [#51](https://github.com/lutest-dev/lutest/pull/51) [`b3da779`](https://github.com/lutest-dev/lutest/commit/b3da779e63de607854c84461ed6beb450878ae32) Thanks [@cayasde](https://github.com/cayasde)! - Add editor documentation for the public Lutest library API.
+
+- [#55](https://github.com/lutest-dev/lutest/pull/55) [`9653e9a`](https://github.com/lutest-dev/lutest/commit/9653e9a07df80988bf83fd5e1261b4f44022ad5e) Thanks [@cayasde](https://github.com/cayasde)! - Discover Roblox test suites from Luau syntax instead of source text.
+
+- [#58](https://github.com/lutest-dev/lutest/pull/58) [`187e268`](https://github.com/lutest-dev/lutest/commit/187e2686d89102b2cb0b7e2a29733588605d908a) Thanks [@cayasde](https://github.com/cayasde)! - Validate the generated Wally package with a Roblox consumer before publication.
+
 ## 0.6.1
 
 ### Patch Changes

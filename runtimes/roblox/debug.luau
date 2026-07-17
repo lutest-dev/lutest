@@ -1,6 +1,7 @@
 const bundle = require '@self/bundle'
 const config = require '@runtimes/lute/config'
 const discovery = require '@self/discovery'
+const errors = require '@core/errors'
 const ui = require '@lutest/utils/ui'
 const t = require '@lutest_release'
 
@@ -158,7 +159,7 @@ const function inspect(
 end
 
 t.test('should render connected module branches and suite labels', function()
-	const output = format('lutest.toml', {
+	const output = errors.strip_ansi(format('lutest.toml', {
 		{
 			absolute = 'game/shared/inventory.luau',
 			relative = 'game/shared/inventory.luau',
@@ -172,7 +173,7 @@ t.test('should render connected module branches and suite labels', function()
 			absolute = 'game/server/inventory_service.server.luau',
 			relative = 'game/server/inventory_service.server.luau',
 		},
-	}, 3, { 'tests/inventory_flow.luau' })
+	}, 3, { 'tests/inventory_flow.luau' }))
 
 	assert(output:find('┣━ game', 1, true) ~= nil)
 	assert(output:find('┃  ┗━ shared', 1, true) ~= nil)

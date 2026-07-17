@@ -1,3 +1,9 @@
+set -e
+
+if [ -n "$USERPROFILE" ]; then
+  export HOME="$USERPROFILE"
+fi
+
 pnpm exec lint-staged
 mise run typecheck
 lute run scripts/test.luau

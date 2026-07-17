@@ -65,6 +65,11 @@ const function access_path(node: syntax.AstNode): (
 			expression = group.expression
 			continue
 		end
+		const assertion = utils.isExprTypeAssertion(expression)
+		if assertion ~= nil then
+			expression = assertion.operand
+			continue
+		end
 
 		const access = utils.isExprIndexName(expression)
 		if access == nil then break end
@@ -90,8 +95,27 @@ const function matches_test_require(
 	require_path: string,
 	service_aliases: ServiceAliases
 ): boolean
-	const call = utils.isRequireCall(node)
+	const call = utils.isExprCall(node)
 	if call == nil or #call.arguments ~= 1 then return false end
+
+	local callee: any = call.func
+	while true do
+		const group = utils.isExprGroup(callee)
+		if group ~= nil then
+			callee = group.expression
+			continue
+		end
+		const assertion = utils.isExprTypeAssertion(callee)
+		if assertion ~= nil then
+			callee = assertion.operand
+			continue
+		end
+		break
+	end
+	const require_global = utils.isExprGlobal(callee)
+	if require_global == nil or require_global.name.text ~= 'require' then
+		return false
+	end
 
 	const root, segments = access_path(call.arguments[1].node)
 	const global = if root == nil then nil else utils.isExprGlobal(root)
@@ -177,6 +201,31 @@ t.test("works", function() end)
 	)
 	fs.remove(temp_path)
 end)
+
+t.test(
+	'should recognize a library require through an external type cast',
+	function()
+		const temp_path = path_utils.resolve_path(
+			path_utils.cwd(),
+			'dist/test-tmp/roblox-cast-discovery.luau'
+		)
+		fs.writeStringToFile(
+			temp_path,
+			[[
+local Storage = game:GetService 'ReplicatedStorage'
+local t = (require :: any)((Storage :: any).Packages.lutest)
+t.test("works", function() end)
+]]
+		)
+		assert(
+			depends_on_test_lib(
+				temp_path,
+				'ReplicatedStorage.Packages.lutest'
+			)
+		)
+		fs.remove(temp_path)
+	end
+)
 
 t.test('should ignore require paths in comments and strings', function()
 	const temp_path = path_utils.resolve_path(

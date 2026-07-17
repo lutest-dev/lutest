@@ -8,6 +8,8 @@ type StringSet = { [string]: boolean }
 const PROJECT_PREFIXES = {
 	'core/',
 	'cli/',
+	'game/',
+	'fixtures/',
 	'lib/',
 	'runtimes/',
 	'scripts/',
@@ -32,6 +34,8 @@ const IGNORE_GLOBS = {
 const PROJECT_ROOTS = {
 	'core',
 	'cli',
+	'game',
+	'fixtures',
 	'lib',
 	'runtimes',
 	'scripts',

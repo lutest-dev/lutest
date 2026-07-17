@@ -2,4 +2,4 @@
 'lutest': minor
 ---
 
-Expose `t.isRunning()` to detect active Lutest sessions.
+Expose `t.is_running()` to detect active Lutest sessions.

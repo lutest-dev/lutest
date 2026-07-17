@@ -195,7 +195,7 @@ const function create_embedded_release_api(): ReleaseApi
 		before_each = before_each,
 		after_each = after_each,
 		after_all = after_all,
-		isRunning = is_running,
+		is_running = is_running,
 	}
 end
 
@@ -561,13 +561,13 @@ t.test('should expose the active session through the embedded API', function()
 		suite_path,
 		[[
 local t = require('@lutest_release')
-assert(t.isRunning() == true)
+assert(t.is_running() == true)
 
 t.test('reports an active session', function()
-	assert(t.isRunning() == true)
+	assert(t.is_running() == true)
 end)
 
-return { running = t.isRunning() }
+return { running = t.is_running() }
 ]]
 	)
 

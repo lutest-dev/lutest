@@ -373,12 +373,12 @@ const api = {
 	---
 	--- This is true while Lutest collects a suite and while it runs hooks or test callbacks.
 	--- @return boolean -- Whether the current code runs under Lutest.
-	isRunning = is_running,
+	is_running = is_running,
 }
 
 t.test('should keep the runtime register outside the public API', function()
 	assert((api :: any).set_runtime_register == nil)
-	assert(api.isRunning() == false)
+	assert(api.is_running() == false)
 end)
 
 return api

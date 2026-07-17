@@ -1,5 +1,6 @@
 const bundle = require '@self/bundle'
 const credentials = require '@self/credentials'
+const debug = require '@self/debug'
 const discovery = require '@self/discovery'
 const harness = require '@self/harness'
 const open_cloud = require '@self/open_cloud'
@@ -61,6 +62,10 @@ const function discover_files(
 ): { string }
 	const discovery_config = (config.load_roblox_config(config_path))
 	return discovery.discover_suites(paths, discovery_config, config_path)
+end
+
+const function inspect_bundle(paths: { string }, config_path: string?): string
+	return debug.inspect(paths, config_path, supplied_library_root())
 end
 
 const function run(
@@ -132,6 +137,7 @@ end)
 
 return {
 	discover_files = discover_files,
+	inspect_bundle = inspect_bundle,
 	non_interactive_prefix = output.non_interactive_prefix,
 	run = run,
 }

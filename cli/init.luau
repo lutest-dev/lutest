@@ -116,6 +116,7 @@ const function main()
 	local todo_suites = nil :: { TodoSuite }?
 	local dry_run_files = nil :: { string }?
 	local dry_run_runtime = nil :: ('lute' | 'roblox')?
+	local bundle_debug_output = nil :: string?
 	local doctor_report = nil :: doctor.DoctorReport?
 	local runtime_error = nil :: string?
 	local selected_runtime = nil :: ('lute' | 'roblox')?
@@ -137,6 +138,24 @@ const function main()
 				)
 			)
 		selected_runtime = runtime
+		if parsed_command.kind == 'debug_bundle' then
+			if runtime ~= 'roblox' then
+				error(
+					errors.usage_error(
+						'`debug bundle` requires the Roblox runtime.',
+						{
+							how_to_fix = 'Pass `--runtime roblox` or configure Roblox as the default runtime.',
+						}
+					),
+					0
+				)
+			end
+			bundle_debug_output = roblox.inspect_bundle(
+				parsed_command.paths :: { string },
+				parsed_command.config_path
+			)
+			return
+		end
 		if parsed_command.dry_run then
 			dry_run_files = discover_dry_run_files(
 				parsed_command.paths :: { string },
@@ -223,6 +242,11 @@ const function main()
 			dry_run_files
 		)
 		process.exit(if #dry_run_files == 0 then 1 else 0)
+	end
+
+	if bundle_debug_output ~= nil then
+		print(bundle_debug_output)
+		process.exit(0)
 	end
 
 	if parsed_command.kind == 'todo' then

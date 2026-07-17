@@ -180,6 +180,14 @@ const function all_bundle_files(
 	return bundled
 end
 
+const function planned_files(
+	files: { BundleFile },
+	suite_paths: { string },
+	library_root: string?
+): { BundleFile }
+	return all_bundle_files(files, suite_paths, library_root)
+end
+
 const function remove_temporary_files(paths: BundlePaths)
 	fs.remove(paths.manifest)
 	fs.remove(paths.script)
@@ -222,7 +230,7 @@ const function build(
 	const paths = bundle_paths()
 	fs.writeStringToFile(
 		paths.manifest,
-		manifest(all_bundle_files(files, suite_paths, library_root))
+		manifest(planned_files(files, suite_paths, library_root))
 	)
 	if embedded_assets.bundle_script == '' then
 		runtime_error 'Missing embedded Roblox bundle script.'
@@ -287,4 +295,5 @@ t.test(
 return {
 	build = build,
 	is_available = is_available,
+	planned_files = planned_files,
 }

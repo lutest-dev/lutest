@@ -254,6 +254,7 @@
   test [paths...] [--runtime lute|roblox] [--config &lt;path&gt;] [--dry-run]
   todo [paths...] [--runtime lute|roblox] [--config &lt;path&gt;] [--dry-run]
   doctor [--config &lt;path&gt;]
+  debug bundle [paths...] [--runtime roblox] [--config &lt;path&gt;]
   setup
   version
 
@@ -280,6 +281,34 @@
   games/arena/src/inventory.luau
 
 <span class="success strong">+ 1 test file discovered. Nothing was executed.</span></pre>
+            </article>
+            <article class="full">
+              <header><h3>Roblox bundle layout</h3><p>The actual hierarchy sent to Roblox</p></header>
+              <pre><span class="accent strong">&gt; Roblox bundle layout</span>
+
+  <span class="muted">config</span>  lutest.toml
+  <span class="muted">files</span>   6 <span class="muted">· suites</span> 1
+
+  LutestBundle
+  <span class="accent">┣━</span> __lutest_lib
+  <span class="accent">┃  ┣━</span> context <span class="muted">[ModuleScript]</span>
+  <span class="accent">┃  ┣━</span> core
+  <span class="accent">┃     ┣━</span> types <span class="muted">[ModuleScript]</span>
+  <span class="accent">┃     ┗━</span> executor <span class="muted">[ModuleScript]</span>
+  <span class="accent">┃  ┣━</span> lib <span class="muted">[ModuleScript]</span>
+  <span class="accent">┃  ┗━</span> registry <span class="muted">[ModuleScript]</span>
+  <span class="accent">┣━</span> game
+  <span class="accent">┃  ┣━</span> shared
+  <span class="accent">┃  ┃  ┣━</span> item_catalog <span class="muted">[ModuleScript]</span>
+  <span class="accent">┃  ┃  ┗━</span> inventory <span class="muted">[ModuleScript]</span>
+  <span class="accent">┃  ┣━</span> server
+  <span class="accent">┃  ┃  ┗━</span> inventory_service <span class="muted">[ModuleScript]</span>
+  <span class="accent">┃  ┗━</span> client
+  <span class="accent">┃     ┗━</span> inventory_hud <span class="muted">[ModuleScript]</span>
+  <span class="accent">┗━</span> tests
+     <span class="accent">┗━</span> inventory_flow <span class="muted">[ModuleScript, </span><span class="accent">suite</span><span class="muted">]</span>
+
+<span class="success strong">+ 6 project files will be bundled. Nothing was uploaded.</span></pre>
             </article>
             <article>
               <header><h3>Local diagnostics</h3><p>Check prerequisites without contacting Roblox</p></header>

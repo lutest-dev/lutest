@@ -4,6 +4,7 @@ const t = require '@lutest_release'
 
 export type ParsedCommand = {
 	kind: 'help'
+		| 'debug_bundle'
 		| 'doctor'
 		| 'setup'
 		| 'test'
@@ -185,6 +186,44 @@ const function parse_command(args: { string }): ParsedCommand
 		}
 	end
 
+	if command == 'debug' then
+		if args[2] ~= 'bundle' then
+			return {
+				kind = 'error',
+				message = errors.usage_error '`debug` requires the `bundle` target.',
+			}
+		end
+
+		local paths = nil :: { string }?
+		local runtime = nil :: ('lute' | 'roblox')?
+		local config_path = nil :: string?
+		local dry_run = false
+		local parse_error = nil :: string?
+		const ok = xpcall(function()
+			paths, runtime, config_path, dry_run =
+				collect_command_arguments(args, 3)
+		end, function(err)
+			parse_error = tostring(err)
+			return parse_error
+		end)
+		if not ok then
+			return { kind = 'error', message = parse_error }
+		end
+		if dry_run then
+			return {
+				kind = 'error',
+				message = errors.usage_error '`debug bundle` does not accept `--dry-run`.',
+			}
+		end
+
+		return {
+			kind = 'debug_bundle',
+			paths = paths,
+			runtime = runtime,
+			config_path = config_path,
+		}
+	end
+
 	if command == 'test' or command == 'todo' then
 		local paths = nil :: { string }?
 		local runtime = nil :: ('lute' | 'roblox')?
@@ -225,6 +264,7 @@ const function parse_command(args: { string }): ParsedCommand
 	const suggested_command = suggest.closest_match(command, {
 		'help',
 		'doctor',
+		'debug',
 		'setup',
 		'test',
 		'todo',
@@ -287,6 +327,35 @@ t.test('should parse doctor with an explicit configuration path', function()
 
 	assert(command.kind == 'doctor')
 	assert(command.config_path == 'configs/roblox.toml')
+end)
+
+t.test('should parse the Roblox bundle debug command', function()
+	const command = parse_command {
+		'debug',
+		'bundle',
+		'game',
+		'--runtime',
+		'roblox',
+	}
+
+	assert(command.kind == 'debug_bundle')
+	assert(command.runtime == 'roblox')
+	assert(command.paths ~= nil)
+	assert((command.paths :: { string })[1] == 'game')
+end)
+
+t.test('should reject a debug command without a target', function()
+	const command = parse_command { 'debug' }
+
+	assert(command.kind == 'error')
+	assert(command.message ~= nil)
+	assert(
+		(command.message :: string):find(
+			'`debug` requires the `bundle` target.',
+			1,
+			true
+		) ~= nil
+	)
 end)
 
 t.test('should reject doctor test options', function()

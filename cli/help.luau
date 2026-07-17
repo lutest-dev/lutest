@@ -10,6 +10,7 @@ const function format_help(): string
 		'  test [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',
 		'  todo [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',
 		'  doctor [--config <path>]',
+		'  debug bundle [paths...] [--runtime roblox] [--config <path>]',
 		'  setup',
 		'  version',
 		'',
@@ -40,6 +41,13 @@ t.test('should format concise help with usage and examples', function()
 		) ~= nil
 	)
 	assert(output:find('doctor [--config <path>]', 1, true) ~= nil)
+	assert(
+		output:find(
+			'debug bundle [paths...] [--runtime roblox] [--config <path>]',
+			1,
+			true
+		) ~= nil
+	)
 	assert(
 		output:find(
 			'todo [paths...] [--runtime lute|roblox] [--config <path>] [--dry-run]',

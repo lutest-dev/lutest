@@ -88,6 +88,11 @@ jobs:
           mise --no-config exec github:luau-lang/lute@1.0.0
           --command "lute run scripts/build-wally-package.luau"
 
+      - name: Build Roblox library asset
+        run: >-
+          mise --no-config exec github:luau-lang/lute@1.0.0 github:lune-org/lune@0.10.5
+          --command "lute run scripts/build-roblox-library.luau"
+
       - name: Publish Wally package
         env:
           WALLY_AUTH_TOKEN: ${{ secrets.WALLY_AUTH_TOKEN }}
@@ -118,5 +123,6 @@ jobs:
             dist/lutest-v${VERSION}-windows-x64.exe \
             dist/lutest-v${VERSION}-linux-x64 \
             dist/lutest-v${VERSION}-macos-arm64 \
+            dist/Lib.rbxm \
             --title "v${VERSION}" \
             --notes-file .tmp/release-notes.md

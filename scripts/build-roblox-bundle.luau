@@ -45,6 +45,8 @@ end
 
 local manifest_path = find_argument '--manifest'
 local output_path = find_argument '--output'
+local root_name = find_argument '--root-name' or 'LutestBundle'
+local root_module = find_argument '--root-module'
 if manifest_path == nil or output_path == nil then
 	fail 'expected --manifest <path> and --output <path>'
 end
@@ -54,8 +56,11 @@ if type(manifest) ~= 'table' or type(manifest.files) ~= 'table' then
 	fail 'manifest must contain a files array'
 end
 
-local root = roblox.Instance.new 'Folder'
-root.Name = 'LutestBundle'
+local root = roblox.Instance.new(
+	if root_module == nil then 'Folder' else 'ModuleScript'
+)
+root.Name = root_name
+local wrote_root_module = false
 
 for _, entry in manifest.files do
 	if type(entry) ~= 'table' then
@@ -68,10 +73,16 @@ for _, entry in manifest.files do
 		fail 'manifest file entry requires absolute and relative strings'
 	end
 
-	local segments = string.split(entry.relative, '/')
-	local parent = folder_for(root, segments, #segments - 1)
-	local module = roblox.Instance.new(script_class(entry.relative))
-	module.Name = string.gsub(segments[#segments], '%.luau$', '')
+	local module = root
+	if entry.relative ~= root_module then
+		local segments = string.split(entry.relative, '/')
+		local parent = folder_for(root, segments, #segments - 1)
+		module = roblox.Instance.new(script_class(entry.relative))
+		module.Name = string.gsub(segments[#segments], '%.luau$', '')
+		module.Parent = parent
+	else
+		wrote_root_module = true
+	end
 	module.Source = if type(entry.source) == 'string'
 		then entry.source
 		else fs.readFile(entry.absolute)
@@ -96,7 +107,23 @@ return {
 }
 ]]
 	end
-	module.Parent = parent
+end
+
+if root_module ~= nil and not wrote_root_module then
+	fail(`manifest does not contain root module '{root_module}'`)
 end
 
 fs.writeFile(output_path, roblox.serializeModel { root })
+
+if root_module ~= nil then
+	local exported = roblox.deserializeModel(fs.readFile(output_path))[1]
+	if exported == nil or exported.Name ~= root_name then
+		fail 'serialized root module did not match the requested root name'
+	end
+	if exported:FindFirstChild 'context' == nil then
+		fail 'serialized root module is missing context'
+	end
+	if exported:FindFirstChild 'core' == nil then
+		fail 'serialized root module is missing core'
+	end
+end

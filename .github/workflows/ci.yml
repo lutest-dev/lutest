@@ -80,7 +80,15 @@ jobs:
           --command "lute setup"
 
       - name: Run typecheck
+        if: github.head_ref != 'changeset-release/main'
         run: mise run typecheck
+
+      - name: Run typecheck for release PR
+        if: github.head_ref == 'changeset-release/main'
+        run: >-
+          mise --no-config exec github:luau-lang/lute@1.0.0
+          github:JohnnyMorganz/luau-lsp@1.68.1
+          --command "lute run scripts/ensure-roblox-defs.luau && lute run scripts/typecheck.luau"
 
       - name: Build Lutest
         run: mise --no-config exec github:luau-lang/lute@1.0.0 cargo:darklua@0.19.0 --command "lute run scripts/release.luau cli/init.luau .tmp/ci-bundle/main.luau .tmp/ci-bin/lutest"

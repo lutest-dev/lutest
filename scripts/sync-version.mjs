@@ -58,3 +58,10 @@ await updateFile(resolve(root, 'loom.lock.luau'), [
   [/Packages\/lutest@v[^']+'/g, `Packages/lutest@v${version}'`],
   [/rev = 'v[^']+'/, `rev = 'v${version}'`],
 ]);
+
+await updateFile(resolve(root, '.config.luau'), [
+  [
+    /lutest_release = 'Packages\/lutest@v[^']+\/lib'/,
+    `lutest_release = 'Packages/lutest@v${version}/lib'`,
+  ],
+]);

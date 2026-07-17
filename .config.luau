@@ -17,7 +17,7 @@ return {
 			core = 'core',
 			lib = 'lib',
 			runtimes = 'runtimes',
-			lutest_release = 'Packages/lutest@v0.1.9/lib',
+			lutest_release = 'Packages/lutest@v0.6.1/lib',
 			packages = 'luau_packages',
 			std = '~/.lute/typedefs/1.0.0/std',
 			lute = '~/.lute/typedefs/1.0.0/lute',

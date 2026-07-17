@@ -57,7 +57,7 @@ const function access_path(node: syntax.AstNode): (
 	(syntax.AstExprGlobal | syntax.AstExprLocal)?,
 	{ string }
 )
-	local expression = node
+	local expression: any = node
 	const segments = {} :: { string }
 	while true do
 		const group = utils.isExprGroup(expression)
@@ -72,8 +72,13 @@ const function access_path(node: syntax.AstNode): (
 		expression = access.expression
 	end
 
-	return utils.isExprGlobal(expression) or utils.isExprLocal(expression),
-		segments
+	const global = utils.isExprGlobal(expression)
+	if global ~= nil then return global, segments end
+
+	const local_ref = utils.isExprLocal(expression)
+	if local_ref ~= nil then return local_ref, segments end
+
+	return nil, segments
 end
 
 const function has_segments(segments: { string }, path: string): boolean

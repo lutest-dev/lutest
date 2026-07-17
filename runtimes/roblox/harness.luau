@@ -142,6 +142,7 @@ for _, test_path in test_paths do
 	end
 
 	local tests = {}
+	runtime_context.begin_session()
 	runtime_context.set_register(function(spec)
 		table.insert(tests, spec)
 	end)
@@ -149,6 +150,7 @@ for _, test_path in test_paths do
 		return require(module)
 	end, debug.traceback)
 	runtime_context.set_register(nil)
+	runtime_context.end_session()
 	if not ok then
 		table.insert(output.load_failures, {
 			path = test_path,

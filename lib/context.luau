@@ -5,6 +5,20 @@ export type TestSpec = types.TestSpec
 export type RuntimeRegister = (TestSpec) -> ()
 
 local runtime_register = nil :: RuntimeRegister?
+local session_depth = 0
+
+const function begin_session()
+	session_depth += 1
+end
+
+const function end_session()
+	assert(session_depth > 0, 'Cannot end an inactive Lutest session.')
+	session_depth -= 1
+end
+
+const function is_running(): boolean
+	return session_depth > 0
+end
 
 const function get_register(): RuntimeRegister?
 	return runtime_register
@@ -97,9 +111,23 @@ t.test('should clear the active runtime register', function()
 	} == false)
 end)
 
+t.test('should track active Lutest sessions', function()
+	assert(is_running() == false)
+	begin_session()
+	assert(is_running() == true)
+	begin_session()
+	end_session()
+	assert(is_running() == true)
+	end_session()
+	assert(is_running() == false)
+end)
+
 return {
+	begin_session = begin_session,
 	clear_register = clear_register,
+	end_session = end_session,
 	get_register = get_register,
+	is_running = is_running,
 	register = register,
 	set_register = set_register,
 }

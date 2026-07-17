@@ -181,6 +181,10 @@ const function create_embedded_release_api(): ReleaseApi
 		table.insert(scope_or_error().hooks.after_all, hook)
 	end
 
+	const function is_running(): boolean
+		return context.is_running()
+	end
+
 	return {
 		test = test,
 		skip = skip,
@@ -191,6 +195,7 @@ const function create_embedded_release_api(): ReleaseApi
 		before_each = before_each,
 		after_each = after_each,
 		after_all = after_all,
+		isRunning = is_running,
 	}
 end
 
@@ -329,6 +334,7 @@ const function load_module(
 	context.set_register(
 		create_runtime_register(tests, execution_state, module_path)
 	)
+	context.begin_session()
 
 	const ok, result = xpcall(function()
 		return execute_module(
@@ -344,6 +350,7 @@ const function load_module(
 		return format_load_error(module_path, err)
 	end)
 
+	context.end_session()
 	context.set_register(previous_register)
 	if not ok then error(result, 0) end
 
@@ -535,6 +542,46 @@ t.test('should keep the embedded API inert outside collection', function()
 
 	assert(suite_called == false)
 	assert(#specs == 0)
+end)
+
+t.test('should expose the active session through the embedded API', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'runner-session-state')
+	const suite_path =
+		path_utils.normalize_path(path.join(temp_cwd, 'suite.luau'))
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		suite_path,
+		[[
+local t = require('@lutest_release')
+assert(t.isRunning() == true)
+
+t.test('reports an active session', function()
+	assert(t.isRunning() == true)
+end)
+
+return { running = t.isRunning() }
+]]
+	)
+
+	const loaded, tests = load_module(suite_path, {
+		roots = { '.' },
+		ignore = {},
+		require = '@lutest_release',
+		gitignore = true,
+	})
+	const result = core.run(create_suite(suite_path, tests))
+
+	assert((loaded :: { running: boolean }).running == true)
+	assert(result.passed_tests == 1)
+	fs.removeDirectory(temp_cwd, { recursive = true })
 end)
 
 t.test('should respect the configured test lib require path', function()

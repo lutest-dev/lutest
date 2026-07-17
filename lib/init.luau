@@ -15,6 +15,10 @@ const function is_collecting(): boolean
 	return context.get_register() ~= nil or registry.is_active()
 end
 
+const function is_running(): boolean
+	return context.is_running()
+end
+
 const function scope_or_error(): TestScope
 	const scope = active_scope
 	if scope ~= nil then return scope end
@@ -365,10 +369,16 @@ const api = {
 	--- @param hook HookFn -- Callback run after all suite tests.
 	--- Does nothing outside collection. Must be called inside a suite callback while collecting.
 	after_all = after_all,
+	--- Returns whether code is executing in an active Lutest session.
+	---
+	--- This is true while Lutest collects a suite and while it runs hooks or test callbacks.
+	--- @return boolean -- Whether the current code runs under Lutest.
+	isRunning = is_running,
 }
 
 t.test('should keep the runtime register outside the public API', function()
 	assert((api :: any).set_runtime_register == nil)
+	assert(api.isRunning() == false)
 end)
 
 return api

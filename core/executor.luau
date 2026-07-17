@@ -1,4 +1,5 @@
 const types = require '@core/types'
+const context = require '@lib/context'
 
 export type TestSpec = types.TestSpec
 export type TestResult = types.TestResult
@@ -171,7 +172,10 @@ const function run_scope(
 	end
 end
 
-const function run(suite: TestSuite, options: RunOptions?): TestSuiteResult
+const function run_in_session(
+	suite: TestSuite,
+	options: RunOptions?
+): TestSuiteResult
 	const resolved_options = options
 		or {
 			focus_only = has_only_tests(suite.tests),
@@ -218,6 +222,19 @@ const function run(suite: TestSuite, options: RunOptions?): TestSuiteResult
 		lifecycle_failures = lifecycle_failures,
 		warnings = suite.warnings,
 	}
+end
+
+const function run(suite: TestSuite, options: RunOptions?): TestSuiteResult
+	context.begin_session()
+	const ok, result = xpcall(function()
+		return run_in_session(suite, options)
+	end, function(err)
+		return err
+	end)
+	context.end_session()
+	if not ok then error(result, 0) end
+
+	return result
 end
 
 return {

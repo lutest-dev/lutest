@@ -5,6 +5,7 @@ export type TestSpec = types.TestSpec
 export type RuntimeRegister = (TestSpec) -> ()
 
 local runtime_register = nil :: RuntimeRegister?
+local registration_owner = nil :: unknown?
 local session_depth = 0
 
 const function begin_session()
@@ -30,6 +31,16 @@ end
 
 const function clear_register()
 	runtime_register = nil
+end
+
+const function get_registration_owner(): unknown?
+	return registration_owner
+end
+
+const function set_registration_owner(owner: unknown?): unknown?
+	const previous_owner = registration_owner
+	registration_owner = owner
+	return previous_owner
 end
 
 const function register(spec: TestSpec): boolean
@@ -122,12 +133,31 @@ t.test('should track active Lutest sessions', function()
 	assert(is_running() == false)
 end)
 
+t.test('should restore a previous registration owner', function()
+	set_registration_owner(nil)
+
+	const first_owner = {}
+	const second_owner = {}
+	assert(set_registration_owner(first_owner) == nil)
+	assert(get_registration_owner() == first_owner)
+
+	const previous_owner = set_registration_owner(second_owner)
+	assert(previous_owner == first_owner)
+	assert(get_registration_owner() == second_owner)
+
+	set_registration_owner(previous_owner)
+	assert(get_registration_owner() == first_owner)
+	set_registration_owner(nil)
+end)
+
 return {
 	begin_session = begin_session,
 	clear_register = clear_register,
 	end_session = end_session,
 	get_register = get_register,
+	get_registration_owner = get_registration_owner,
 	is_running = is_running,
 	register = register,
 	set_register = set_register,
+	set_registration_owner = set_registration_owner,
 }

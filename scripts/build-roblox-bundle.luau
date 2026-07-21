@@ -43,6 +43,49 @@ local function script_class(relative_path)
 	return 'ModuleScript'
 end
 
+local function suite_runner_source()
+	return [[
+local suite = nil
+local runtime_context = nil
+local owner = nil
+local loaded = false
+local loaded_value = nil
+
+local function load()
+	if loaded then return loaded_value end
+	loaded = true
+	if runtime_context == nil then
+		error("Lutest suite runner was not configured.")
+	end
+
+	local previous_owner = runtime_context.set_registration_owner(owner)
+	local ok, value = xpcall(suite, debug.traceback)
+	runtime_context.set_registration_owner(previous_owner)
+	if ok then
+		loaded_value = if value == nil then true else value
+		return loaded_value
+	end
+
+	loaded_value = {
+		__lutest_suite_load_failure = true,
+		error_message = value,
+	}
+	return loaded_value
+end
+
+return {
+	configure = function(next_context, next_owner)
+		runtime_context = next_context
+		owner = next_owner
+	end,
+	register = function(callback)
+		suite = callback
+	end,
+	load = load,
+}
+]]
+end
+
 local manifest_path = find_argument '--manifest'
 local output_path = find_argument '--output'
 local root_name = find_argument '--root-name' or 'LutestBundle'
@@ -87,24 +130,19 @@ for _, entry in manifest.files do
 		then entry.source
 		else fs.readFile(entry.absolute)
 	if entry.test_suite == true then
+		local runner = roblox.Instance.new 'ModuleScript'
+		runner.Name = '__lutest_suite_runner'
+		runner.Source = suite_runner_source()
+		runner.Parent = module
 		module.Source = [[
+local __lutest_suite_runner = require(script.__lutest_suite_runner)
 local function __lutest_suite()
 ]] .. module.Source .. [[
 
 end
 
-local __lutest_ok, __lutest_value = xpcall(__lutest_suite, debug.traceback)
-if __lutest_ok then
-	if __lutest_value == nil then
-		return true
-	end
-	return __lutest_value
-end
-
-return {
-	__lutest_suite_load_failure = true,
-	error_message = __lutest_value,
-}
+__lutest_suite_runner.register(__lutest_suite)
+return __lutest_suite_runner.load()
 ]]
 	end
 end

@@ -8,7 +8,7 @@
 "github:UpliftGames/wally" = "0.3.2"
 "github:rojo-rbx/rojo" = "7.7.0"
 "cargo:darklua" = "0.19.0"
-"github:lutest-dev/lutest" = "0.7.0"
+"github:lutest-dev/lutest" = "0.7.1"
 node = "24.15.0"
 "npm:pnpm" = "11.0.9"
 

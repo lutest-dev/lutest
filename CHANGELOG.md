@@ -1,5 +1,15 @@
 # lutest
 
+## 0.7.1
+
+### Patch Changes
+
+- [#68](https://github.com/lutest-dev/lutest/pull/68) [`9eacd32`](https://github.com/lutest-dev/lutest/commit/9eacd328bac98e2a1b3072dbdc728af8e83ac95a) Thanks [@cayasde](https://github.com/cayasde)! - Isolate co-located Roblox suites from consumers that require them first.
+
+- [#70](https://github.com/lutest-dev/lutest/pull/70) [`6c97d94`](https://github.com/lutest-dev/lutest/commit/6c97d94b7a747c0200f13f14b275ddb52f7debd2) Thanks [@cayasde](https://github.com/cayasde)! - Include readable file symbolic links in Roblox discovery and bundles.
+
+- [#71](https://github.com/lutest-dev/lutest/pull/71) [`4b9c5bc`](https://github.com/lutest-dev/lutest/commit/4b9c5bc5f7f16f13e28757f4304c5f6a6b030f68) Thanks [@cayasde](https://github.com/cayasde)! - Support optional Rojo project mappings in Roblox test bundles.
+
 ## 0.7.0
 
 ### Minor Changes

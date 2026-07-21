@@ -18,6 +18,7 @@ export type RobloxConfig = {
 	version_id: number?,
 	poll_interval_seconds: number,
 	timeout_seconds: number,
+	rojo_project: string?,
 }
 
 export type ProjectConfig = {
@@ -137,6 +138,7 @@ const function ensure_roblox_options(project: ProjectConfig): RobloxConfig
 		version_id = nil,
 		poll_interval_seconds = 2,
 		timeout_seconds = 300,
+		rojo_project = nil,
 	} :: RobloxConfig
 	project.roblox_options = created
 	return created
@@ -203,6 +205,10 @@ const function assign_roblox(project: ProjectConfig, key: string, value: string)
 		if config.timeout_seconds > 300 then
 			error 'roblox.timeout_seconds must not exceed 300'
 		end
+		return
+	end
+	if key == 'rojo_project' then
+		config.rojo_project = parse_string(value)
 		return
 	end
 	error(`unsupported key 'roblox.{key}'`)
@@ -431,6 +437,18 @@ timeout_seconds = 301
 ]]
 	end)
 	assert(ok == false)
+end)
+
+t.test('should read an optional Rojo project path', function()
+	const project = parse_config [[
+[roblox]
+rojo_project = "game.project.json"
+]]
+	assert(project.roblox_options ~= nil)
+	assert(
+		(project.roblox_options :: RobloxConfig).rojo_project
+			== 'game.project.json'
+	)
 end)
 
 t.test('should load an explicit configuration file', function()

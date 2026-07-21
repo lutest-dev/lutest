@@ -7,6 +7,7 @@ const open_cloud = require '@self/open_cloud'
 const output = require '@self/output'
 const progress = require '@self/progress'
 const protocol = require '@self/protocol'
+const rojo = require '@self/rojo'
 const config = require '@runtimes/lute/config'
 const process = require '@std/process'
 const t = require '@lutest_release'
@@ -79,11 +80,14 @@ const function run(
 		discovery.discover_suites(paths, discovery_config, config_path)
 	if #suites == 0 then return {} end
 
-	const all_files = discovery.discover_all_files(
-		discovery_config.roots,
-		discovery_config,
+	const all_files =
+		discovery.discover_all_files({}, discovery_config, config_path)
+	const project_files = rojo.map_files(
+		bundle_files(all_files),
+		roblox_config.rojo_project,
 		config_path
 	)
+	const suite_paths = bundle.test_suite_paths(project_files, suites)
 	const current_progress = progress.default_progress()
 	current_progress.update 'preparing bundle'
 
@@ -95,13 +99,13 @@ const function run(
 			roblox_config,
 			credentials.load(),
 			bundle.build(
-				bundle_files(all_files),
-				discovery.relative_paths(suites),
+				project_files,
+				suites,
 				supplied_library_root()
 			),
 			harness.generate {
 				require_path = `game.{discovery_config.require}`,
-				test_paths = discovery.relative_paths(suites),
+				test_paths = suite_paths,
 				mode = mode,
 			},
 			current_progress.update

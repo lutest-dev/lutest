@@ -18,7 +18,8 @@
     "vendor/lute",
     "vendor/tint",
     "vendor/pesde",
-    "vendor/darklua"
+    "vendor/darklua",
+    "vendor/rojo"
   ],
   "search.exclude": {
     "**/vendor": true,

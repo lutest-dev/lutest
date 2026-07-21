@@ -19,3 +19,6 @@
 [submodule "vendor/darklua"]
 	path = vendor/darklua
 	url = https://github.com/seaofvoices/darklua.git
+[submodule "vendor/rojo"]
+	path = vendor/rojo
+	url = https://github.com/rojo-rbx/rojo.git

@@ -33,14 +33,28 @@ local function folder_for(root, segments, count)
 	return current
 end
 
-local function script_class(relative_path)
-	if string.match(relative_path, '%.client%.luau$') then
+local function script_class(source_path)
+	if string.match(source_path, '%.client%.lua[u]?$') then
 		return 'LocalScript'
 	end
-	if string.match(relative_path, '%.server%.luau$') then
+	if string.match(source_path, '%.server%.lua[u]?$') then
 		return 'Script'
 	end
 	return 'ModuleScript'
+end
+
+local function module_name(path)
+	return (
+		string.gsub(
+			string.gsub(
+				string.gsub(path, '%.client%.lua[u]?$', ''),
+				'%.server%.lua[u]?$',
+				''
+			),
+			'%.lua[u]?$',
+			''
+		)
+	)
 end
 
 local function suite_runner_source()
@@ -120,8 +134,8 @@ for _, entry in manifest.files do
 	if entry.relative ~= root_module then
 		local segments = string.split(entry.relative, '/')
 		local parent = folder_for(root, segments, #segments - 1)
-		module = roblox.Instance.new(script_class(entry.relative))
-		module.Name = string.gsub(segments[#segments], '%.luau$', '')
+		module = roblox.Instance.new(script_class(entry.absolute))
+		module.Name = module_name(segments[#segments])
 		module.Parent = parent
 	else
 		wrote_root_module = true

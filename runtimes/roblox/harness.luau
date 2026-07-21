@@ -73,6 +73,27 @@ local function mount_bundled_library()
 	return context
 end
 
+local function mount_project_children(source, parent)
+	for _, child in source:GetChildren() do
+		if child.Name == "__lutest_lib" then
+			continue
+		end
+		local existing = parent:FindFirstChild(child.Name)
+		if existing == nil then
+			child.Parent = parent
+			continue
+		end
+		if child:IsA("Folder") then
+			mount_project_children(child, existing)
+			child:Destroy()
+			continue
+		end
+		existing:Destroy()
+		child.Parent = parent
+	end
+end
+
+mount_project_children(bundle_root, game)
 local context_module = mount_bundled_library()
 local runtime_context = require(context_module)
 local test_api = require(]] .. input.require_path .. [[)
@@ -87,7 +108,7 @@ end
 local test_executor = require(executor_module)
 
 local function find_module(relative_path)
-	local current = bundle_root
+	local current = game
 	for segment in string.gmatch(relative_path, "[^/]+") do
 		segment = string.gsub(segment, "%.luau$", "")
 		current = current:FindFirstChild(segment)
@@ -226,8 +247,28 @@ t.test('should generate a harness that emits one versioned envelope', function()
 		source:find('game.ReplicatedStorage.Packages.lutest', 1, true)
 			~= nil
 	)
+	const project_mount = source:find(
+		'mount_project_children(bundle_root, game)',
+		1,
+		true
+	)
+	const library_mount = source:find(
+		'local context_module = mount_bundled_library()',
+		1,
+		true
+	)
+	assert(project_mount ~= nil)
+	assert(library_mount ~= nil)
+	assert(project_mount < library_mount)
 	assert(source:find('tests/example.luau', 1, true) ~= nil)
 	assert(source:find('entry.Name = segments[#segments]', 1, true) ~= nil)
+	assert(
+		source:find(
+			'mount_project_children(bundle_root, game)',
+			1,
+			true
+		) ~= nil
+	)
 	assert(source:find('library:FindFirstChild("init")', 1, true) ~= nil)
 	assert(source:find('entry:FindFirstChild("context")', 1, true) ~= nil)
 	assert(source:find('existing:Destroy()', 1, true) ~= nil)

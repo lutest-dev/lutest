@@ -2,7 +2,11 @@ const bundle = require '@self/bundle'
 const config = require '@runtimes/lute/config'
 const discovery = require '@self/discovery'
 const errors = require '@core/errors'
+const rojo = require '@self/rojo'
 const ui = require '@lutest/utils/ui'
+const fs = require '@std/fs'
+const path = require '@std/path'
+const path_utils = require '@lutest/utils/path'
 const t = require '@lutest_release'
 
 type TreeNode = {
@@ -19,15 +23,17 @@ end
 
 const function module_name(relative_path: string): string
 	const name = relative_path
-		:gsub('%.client%.luau$', '')
-		:gsub('%.server%.luau$', '')
-		:gsub('%.luau$', '')
+		:gsub('%.client%.lua[u]?$', '')
+		:gsub('%.server%.lua[u]?$', '')
+		:gsub('%.lua[u]?$', '')
 	return name
 end
 
 const function module_class(relative_path: string): string
-	if relative_path:match '%.client%.luau$' then return 'LocalScript' end
-	if relative_path:match '%.server%.luau$' then return 'Script' end
+	if relative_path:match '%.client%.lua[u]?$' then
+		return 'LocalScript'
+	end
+	if relative_path:match '%.server%.lua[u]?$' then return 'Script' end
 	return 'ModuleScript'
 end
 
@@ -65,7 +71,7 @@ end
 const function node_label(name: string, node: TreeNode): string
 	if node.file == nil then return name end
 
-	const class = module_class(node.file.relative)
+	const class = module_class(node.file.absolute)
 	if not node.file.test_suite then
 		return `{name} {ui.muted(`[{class}]`)}`
 	end
@@ -140,21 +146,22 @@ const function inspect(
 	config_path: string?,
 	library_root: string?
 ): string
-	const discovery_config = config.load_roblox_config(config_path)
+	const discovery_config, roblox_config =
+		config.load_roblox_config(config_path)
 	const suites =
 		discovery.discover_suites(paths, discovery_config, config_path)
-	const files = discovery.discover_all_files(
-		discovery_config.roots,
-		discovery_config,
+	const files =
+		discovery.discover_all_files({}, discovery_config, config_path)
+	const project = rojo.map_files(
+		project_files(files),
+		roblox_config.rojo_project,
 		config_path
 	)
-	const project = project_files(files)
-	const suite_paths = discovery.relative_paths(suites)
 	return format(
 		config_path,
-		bundle.planned_files(project, suite_paths, library_root),
+		bundle.planned_files(project, suites, library_root),
 		#project,
-		suite_paths
+		bundle.test_suite_paths(project, suites)
 	)
 end
 
@@ -173,17 +180,82 @@ t.test('should render connected module branches and suite labels', function()
 			absolute = 'game/server/inventory_service.server.luau',
 			relative = 'game/server/inventory_service.server.luau',
 		},
+		{
+			absolute = 'game/client/hud.client.lua',
+			relative = 'StarterPlayer/StarterPlayerScripts/hud',
+		},
 	}, 3, { 'tests/inventory_flow.luau' }))
 
 	assert(output:find('┣━ game', 1, true) ~= nil)
 	assert(output:find('┃  ┗━ shared', 1, true) ~= nil)
 	assert(output:find('inventory_service [Script]', 1, true) ~= nil)
+	assert(output:find('hud [LocalScript]', 1, true) ~= nil)
 	assert(output:find('┗━ tests', 1, true) ~= nil)
 	assert(
 		output:find('inventory_flow [ModuleScript, suite]', 1, true)
 			~= nil
 	)
 	assert(output:find('Nothing was uploaded.', 1, true) ~= nil)
+end)
+
+t.test('should use roots relative to a nested Roblox config', function()
+	const temp_root = path_utils.resolve_path(
+		path_utils.cwd(),
+		'dist/test-tmp/roblox-debug-nested-config'
+	)
+	const config_directory =
+		path_utils.resolve_path(temp_root, 'games/arena')
+	const config_path =
+		path_utils.resolve_path(config_directory, 'lutest.toml')
+	const suite_path =
+		path_utils.resolve_path(config_directory, 'src/ok.luau')
+	const library_root = path_utils.resolve_path(temp_root, 'library')
+
+	if fs.exists(temp_root) then
+		fs.removeDirectory(temp_root, { recursive = true })
+	end
+	fs.createDirectory(path.dirname(suite_path), { makeParents = true })
+	fs.writeStringToFile(
+		config_path,
+		[[
+[discovery.roblox]
+require = "ReplicatedStorage.Packages.lutest"
+roots = ["src"]
+
+[roblox]
+universe_id = 1
+place_id = 2
+]]
+	)
+	fs.writeStringToFile(
+		suite_path,
+		[[
+local t = require(game.ReplicatedStorage.Packages.lutest)
+
+t.test("should pass", function() end)
+]]
+	)
+	for _, relative_path in
+		{
+			'init.luau',
+			'context.luau',
+			'registry.luau',
+			'core/types.luau',
+			'core/executor.luau',
+		}
+	do
+		const library_path =
+			path_utils.resolve_path(library_root, relative_path)
+		fs.createDirectory(path.dirname(library_path), {
+			makeParents = true,
+		})
+		fs.writeStringToFile(library_path, 'return {}')
+	end
+
+	const output = errors.strip_ansi(inspect({}, config_path, library_root))
+	assert(output:find('ok [ModuleScript, suite]', 1, true) ~= nil)
+
+	fs.removeDirectory(temp_root, { recursive = true })
 end)
 
 return {

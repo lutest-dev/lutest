@@ -158,7 +158,7 @@ end
 
 const function is_test_suite(file: BundleFile, suite_paths: { string }): boolean
 	for _, suite_path in suite_paths do
-		if file.relative == suite_path then return true end
+		if file.absolute == suite_path then return true end
 	end
 	return false
 end
@@ -186,6 +186,19 @@ const function planned_files(
 	library_root: string?
 ): { BundleFile }
 	return all_bundle_files(files, suite_paths, library_root)
+end
+
+const function test_suite_paths(
+	files: { BundleFile },
+	suite_paths: { string }
+): { string }
+	const paths = {} :: { string }
+	for _, file in files do
+		if is_test_suite(file, suite_paths) then
+			table.insert(paths, file.relative)
+		end
+	end
+	return paths
 end
 
 const function remove_temporary_files(paths: BundlePaths)
@@ -268,6 +281,16 @@ t.test('should encode source files as a Lune bundle manifest', function()
 	assert(output:find('src/example.luau', 1, true) ~= nil)
 end)
 
+t.test('should use mapped suite paths in the remote harness', function()
+	const paths = test_suite_paths({
+		{
+			absolute = 'tests/ok.luau',
+			relative = 'ReplicatedStorage/tests/ok',
+		},
+	}, { 'tests/ok.luau' })
+	assert(paths[1] == 'ReplicatedStorage/tests/ok')
+end)
+
 t.test('should nest package modules under the Wally entrypoint', function()
 	assert(package_bundle_path 'init.luau' == '__lutest_lib/init.luau')
 	assert(
@@ -296,4 +319,5 @@ return {
 	build = build,
 	is_available = is_available,
 	planned_files = planned_files,
+	test_suite_paths = test_suite_paths,
 }

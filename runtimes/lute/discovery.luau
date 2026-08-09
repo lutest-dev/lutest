@@ -1,5 +1,6 @@
 const config = require '@runtimes/lute/config'
 const errors = require '@core/errors'
+const glob = require '@lutest/utils/glob'
 const path_utils = require '@lutest/utils/path'
 const suggest = require '@lutest/utils/suggest'
 const t = require '@lutest_release'
@@ -44,18 +45,27 @@ const function normalize_ignore_rule(line: string): string
 	return normalized
 end
 
+const function ancestor_and_self(relative_path: string): { string }
+	const segments = {} :: { string }
+	const prefixes = {} :: { string }
+	for segment in relative_path:gmatch '[^/]+' do
+		table.insert(segments, segment)
+		table.insert(prefixes, table.concat(segments, '/'))
+	end
+	return prefixes
+end
+
 const function matches_gitignore_rule(
 	relative_path: string,
 	rule: GitignoreRule
 ): boolean
-	if rule.match_anywhere then
-		return relative_path == rule.pattern
-			or relative_path:find(`/{rule.pattern}/`, 1, true) ~= nil
-			or stringext.hasSuffix(relative_path, `/{rule.pattern}`)
+	const pattern = if rule.match_anywhere
+		then `**/{rule.pattern}`
+		else rule.pattern
+	for _, prefix in ancestor_and_self(relative_path) do
+		if glob.matches(pattern, prefix) then return true end
 	end
-
-	return relative_path == rule.pattern
-		or stringext.hasPrefix(relative_path, `{rule.pattern}/`)
+	return false
 end
 
 const function relative_path_from_cwd(filepath: string, cwd: string): string
@@ -380,56 +390,63 @@ const function find_path_suggestion(input_path: string, cwd: string): string?
 	return format_suggested_path(normalized_input, suggested_name)
 end
 
-const function discover_path(
-	results: { string },
-	seen: SeenMap,
+const function raise_missing_path(
 	input: DiscoveryInput,
 	cwd: string,
-	gitignore_rules: GitignoreRules,
-	project_config: LutestConfig,
 	config_filepath: string?
-)
-	const resolved_path = resolve_input_path(input.path, cwd)
-	if not fs.exists(resolved_path) then
-		if input.source == 'cli' then
-			const suggested_path =
-				find_path_suggestion(input.path, cwd)
-			error(
-				errors.usage_error('Test path not found', {
-					where = input.path,
-					suggestion = if suggested_path
-							== nil
-						then nil
-						else `'{suggested_path}'`,
-					how_to_fix = 'Use a test file or directory that exists.',
-				}),
-				0
-			)
-		end
+): never
+	const has_glob = glob.has_magic(input.path)
+	const suggestion = if has_glob
+		then nil
+		else find_path_suggestion(input.path, cwd)
 
-		const suggested_root = find_path_suggestion(input.path, cwd)
-
+	if input.source == 'cli' then
 		error(
-			errors.configuration_error(
-				`Configured discovery root '{input.path}' does not exist.`,
+			errors.usage_error(
+				if has_glob
+					then 'No test files matched the glob'
+					else 'Test path not found',
 				{
-					where = config_filepath
-						or path_utils.normalize_path(
-							path.join(
-								cwd,
-								'lutest.toml'
-							)
-						),
-					suggestion = if suggested_root
+					where = input.path,
+					suggestion = if suggestion
 							== nil
 						then nil
-						else `'{suggested_root}'`,
-					how_to_fix = 'Update `discovery.roots` in `lutest.toml` to reference existing directories.',
+						else `'{suggestion}'`,
+					how_to_fix = 'Use a test file or directory that exists.',
 				}
 			),
 			0
 		)
 	end
+
+	error(
+		errors.configuration_error(
+			if has_glob
+				then `Configured discovery root '{input.path}' matched no files.`
+				else `Configured discovery root '{input.path}' does not exist.`,
+			{
+				where = config_filepath
+					or path_utils.normalize_path(
+						path.join(cwd, 'lutest.toml')
+					),
+				suggestion = if suggestion == nil
+					then nil
+					else `'{suggestion}'`,
+				how_to_fix = 'Update `discovery.roots` in `lutest.toml` to reference existing directories.',
+			}
+		),
+		0
+	)
+end
+
+const function ingest_path(
+	results: { string },
+	seen: SeenMap,
+	resolved_path: string,
+	cwd: string,
+	gitignore_rules: GitignoreRules,
+	project_config: LutestConfig
+)
 	if
 		should_prune(
 			resolved_path,
@@ -464,6 +481,49 @@ const function discover_path(
 			project_config
 		)
 	end
+end
+
+const function discover_path(
+	results: { string },
+	seen: SeenMap,
+	input: DiscoveryInput,
+	cwd: string,
+	gitignore_rules: GitignoreRules,
+	project_config: LutestConfig,
+	config_filepath: string?
+)
+	if glob.has_magic(input.path) then
+		const matches = glob.expand(input.path, cwd)
+		if #matches == 0 then
+			raise_missing_path(input, cwd, config_filepath)
+		end
+
+		for _, match in matches do
+			ingest_path(
+				results,
+				seen,
+				match,
+				cwd,
+				gitignore_rules,
+				project_config
+			)
+		end
+		return
+	end
+
+	const resolved_path = resolve_input_path(input.path, cwd)
+	if not fs.exists(resolved_path) then
+		raise_missing_path(input, cwd, config_filepath)
+	end
+
+	ingest_path(
+		results,
+		seen,
+		resolved_path,
+		cwd,
+		gitignore_rules,
+		project_config
+	)
 end
 
 const function discover_files(
@@ -1129,6 +1189,90 @@ end)
 	fs.removeDirectory(temp_cwd, { recursive = true })
 end)
 
+t.test('should respect glob patterns in .gitignore', function()
+	const temp_root =
+		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
+	const temp_cwd =
+		path_utils.resolve_path(temp_root, 'discovery-gitignore-glob')
+	const kept_module = path_utils.normalize_path(
+		path.join(temp_cwd, 'src', 'kept.luau')
+	)
+	const ignored_extension = path_utils.normalize_path(
+		path.join(temp_cwd, 'src', 'kept.spec.luau')
+	)
+	const ignored_nested = path_utils.normalize_path(
+		path.join(temp_cwd, 'src', 'generated', 'nested.luau')
+	)
+	const gitignore_path = path.join(temp_cwd, '.gitignore')
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(
+		path.join(temp_cwd, 'src', 'generated'),
+		{ makeParents = true }
+	)
+
+	fs.writeStringToFile(gitignore_path, '*.spec.luau\n**/generated\n')
+	fs.writeStringToFile(
+		kept_module,
+		[[
+local t = require("@lutest_release")
+
+t.test("should pass", function()
+	assert(true)
+end)
+]]
+	)
+	fs.writeStringToFile(
+		ignored_extension,
+		[[
+local t = require("@lutest_release")
+
+t.test("should be ignored by extension glob", function()
+	assert(true)
+end)
+]]
+	)
+	fs.writeStringToFile(
+		ignored_nested,
+		[[
+local t = require("@lutest_release")
+
+t.test("should be ignored by globstar", function()
+	assert(true)
+end)
+]]
+	)
+
+	const discovered = {} :: { string }
+	const seen = {} :: SeenMap
+	const gitignore_rules = load_gitignore_rules(temp_cwd)
+
+	discover_path(
+		discovered,
+		seen,
+		{
+			path = temp_cwd,
+			source = 'cli',
+		},
+		temp_cwd,
+		gitignore_rules,
+		{
+			roots = { '.' },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = true,
+		}
+	)
+
+	assert(#discovered == 1)
+	assert(discovered[1] == kept_module)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
 t.test('should ignore .gitignore when disabled in config', function()
 	const temp_root =
 		path_utils.resolve_path(path_utils.cwd(), 'dist/test-tmp')
@@ -1435,6 +1579,123 @@ end)
 	assert(#discovered == 2)
 	assert(discovered[1] == earlier_module)
 	assert(discovered[2] == later_module)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should discover test files through a glob input path', function()
+	const temp_cwd = path_utils.resolve_path(
+		path_utils.cwd(),
+		'dist/test-tmp/discovery-glob-input'
+	)
+	const matching_module = path_utils.normalize_path(
+		path.join(temp_cwd, 'suites', 'inventory.luau')
+	)
+	const nested_module = path_utils.normalize_path(
+		path.join(temp_cwd, 'suites', 'nested', 'combat.luau')
+	)
+	const wrong_extension = path_utils.normalize_path(
+		path.join(temp_cwd, 'suites', 'notes.txt')
+	)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(
+		path.join(temp_cwd, 'suites', 'nested'),
+		{ makeParents = true }
+	)
+	fs.writeStringToFile(
+		matching_module,
+		[[
+local t = require("@lutest_release")
+
+t.test("should pass", function()
+	assert(true)
+end)
+]]
+	)
+	fs.writeStringToFile(
+		nested_module,
+		[[
+local t = require("@lutest_release")
+
+t.test("should pass nested", function()
+	assert(true)
+end)
+]]
+	)
+	fs.writeStringToFile(wrong_extension, 'not a luau module')
+
+	const discovered = {} :: { string }
+	const seen = {} :: SeenMap
+
+	discover_path(
+		discovered,
+		seen,
+		{
+			path = 'suites/**/*.luau',
+			source = 'cli',
+		},
+		temp_cwd,
+		{},
+		{
+			roots = { '.' },
+			ignore = {},
+			require = '@lutest_release',
+			gitignore = false,
+		}
+	)
+
+	table.sort(discovered)
+	assert(#discovered == 2)
+	assert(discovered[1] == matching_module)
+	assert(discovered[2] == nested_module)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should raise a usage error for an unmatched glob path', function()
+	const temp_cwd = path_utils.resolve_path(
+		path_utils.cwd(),
+		'dist/test-tmp/discovery-glob-empty'
+	)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(temp_cwd, { makeParents = true })
+
+	local message = nil :: string?
+	const ok = xpcall(function()
+		discover_path(
+			{},
+			{},
+			{
+				path = 'suites/*.luau',
+				source = 'cli',
+			},
+			temp_cwd,
+			{},
+			{
+				roots = { '.' },
+				ignore = {},
+				require = '@lutest_release',
+				gitignore = false,
+			}
+		)
+	end, function(err)
+		message = tostring(err)
+		return message
+	end)
+
+	assert(ok == false)
+	assert(message ~= nil)
+	message = errors.strip_ansi(errors.display_error(message))
+	assert(message:find('No test files matched the glob', 1, true) ~= nil)
+	assert(message:find('> suites/*.luau', 1, true) ~= nil)
 
 	fs.removeDirectory(temp_cwd, { recursive = true })
 end)

@@ -1,3 +1,17 @@
+## Project overview
+
+Lutest is a test runner for Luau modules. It keeps tests close to the code they exercise while preserving ordinary Luau module shape: test modules do not need to return suite objects or expose artificial public APIs for test access.
+
+The repository contains the CLI, the public test library, and runtime-specific discovery and execution code. The core workflow is:
+
+- discovery selects modules that require the configured Lutest package path; filename suffixes such as `.test.luau` and `.spec.luau` are not the main contract;
+
+- each discovered module becomes an implicit suite, with explicit suites and lifecycle hooks available when grouping and shared setup are needed;
+
+- the selected runtime loads the modules and the core runner executes the registered tests.
+
+The local Lute runtime executes tests locally. The Roblox runtime bundles the selected Luau sources and runs them in a Roblox Open Cloud Luau Execution session task, which provides place context and engine APIs but is not a full Play session. Project behavior is configured through `lutest.toml`; the public workflow and current contracts are documented at https://lutest-dev.github.io/site/.
+
 Treat `vendor` as read-only. Do not edit it during normal project work.
 
 Use `vendor/luau-lsp/src/Plugin/README.md` only as a tooling and editor-workflow reference, especially for source transformation and future co-located test authoring ideas. Do not treat the Luau LSP plugin system as core `lutest` architecture.

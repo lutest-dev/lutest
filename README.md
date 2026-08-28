@@ -1,11 +1,11 @@
 <div align="center">
 
-<h1>
-  <img src="https://raw.githubusercontent.com/lutest-dev/site/main/assets/logo.png" alt="" width="64" height="64" style="vertical-align: -30%;" />
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/lutest-dev/site/main/assets/logo.png" alt="" width="56" height="56" align="absbottom" />
   Lutest
 </h1>
 
-**A modern test runner for Luau projects.**
+<p align="center"><strong>A modern test runner for Luau projects.</strong></p>
 
 Keep tests next to the modules they exercise. Run them locally with Lute or
 against Roblox through Open Cloud Luau Execution.

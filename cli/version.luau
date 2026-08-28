@@ -10,7 +10,7 @@ const function print_version()
 end
 
 t.test('should format version output', function()
-	assert(format_version() == 'lutest 0.7.1')
+	assert(format_version() == 'lutest 0.8.0')
 end)
 
 return {

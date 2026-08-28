@@ -1,5 +1,15 @@
 # lutest
 
+## 0.8.0
+
+### Minor Changes
+
+- [#72](https://github.com/lutest-dev/lutest/pull/72) [`5b28d26`](https://github.com/lutest-dev/lutest/commit/5b28d266df1365b9a2ff223a1b275c2a86d92673) Thanks [@ernisto](https://github.com/ernisto)! - Add glob patterns to test discovery and `.gitignore` matching across the Lute and Roblox runtimes.
+
+### Patch Changes
+
+- [#78](https://github.com/lutest-dev/lutest/pull/78) [`5e575c5`](https://github.com/lutest-dev/lutest/commit/5e575c5597bd62538fa2238fc70b624c4700e9fb) Thanks [@cayasde](https://github.com/cayasde)! - Correct source line reporting for failures in Roblox test suites.
+
 ## 0.7.1
 
 ### Patch Changes

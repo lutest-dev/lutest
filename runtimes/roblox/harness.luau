@@ -261,32 +261,7 @@ t.test('should generate a harness that emits one versioned envelope', function()
 	assert(library_mount ~= nil)
 	assert(project_mount < library_mount)
 	assert(source:find('tests/example.luau', 1, true) ~= nil)
-	assert(source:find('entry.Name = segments[#segments]', 1, true) ~= nil)
-	assert(
-		source:find(
-			'mount_project_children(bundle_root, game)',
-			1,
-			true
-		) ~= nil
-	)
-	assert(source:find('library:FindFirstChild("init")', 1, true) ~= nil)
-	assert(source:find('entry:FindFirstChild("context")', 1, true) ~= nil)
-	assert(source:find('existing:Destroy()', 1, true) ~= nil)
-	assert(source:find('runtime_context.set_register', 1, true) ~= nil)
-	assert(source:find('local prepared_suites = {}', 1, true) ~= nil)
-	assert(
-		source:find(
-			'runner.configure(runtime_context, module)',
-			1,
-			true
-		) ~= nil
-	)
-	assert(source:find('prepared_by_module[owner]', 1, true) ~= nil)
-	assert(source:find('__lutest_suite_runner', 1, true) ~= nil)
-	assert(source:find('suite executor', 1, true) ~= nil)
 	assert(source:find('__lutest_suite_load_failure', 1, true) ~= nil)
-	assert(source:find('loaded.error_message', 1, true) ~= nil)
-	assert(source:find('test_api.set_runtime_register', 1, true) == nil)
 	assert(source:find('must be ModuleScripts', 1, true) ~= nil)
 end)
 

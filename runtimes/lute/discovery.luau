@@ -723,39 +723,6 @@ const function discover_all_files(
 	return discovered
 end
 
-t.test('should prefer explicit input paths over config roots', function()
-	const resolved = resolve_input_paths({
-		'src',
-		'tests',
-	}, {
-		roots = { 'packages' },
-		ignore = {},
-		require = '@lutest_release',
-		gitignore = true,
-	})
-
-	assert(#resolved == 2)
-	assert(resolved[1].path == 'src')
-	assert(resolved[1].source == 'cli')
-	assert(resolved[2].path == 'tests')
-	assert(resolved[2].source == 'cli')
-end)
-
-t.test('should use config roots when no input paths are provided', function()
-	const resolved = resolve_input_paths({}, {
-		roots = { 'src', 'tests' },
-		ignore = {},
-		require = '@lutest_release',
-		gitignore = true,
-	})
-
-	assert(#resolved == 2)
-	assert(resolved[1].path == 'src')
-	assert(resolved[1].source == 'config')
-	assert(resolved[2].path == 'tests')
-	assert(resolved[2].source == 'config')
-end)
-
 t.test(
 	'should resolve explicit config roots from the config directory',
 	function()

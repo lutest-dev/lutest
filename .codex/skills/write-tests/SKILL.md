@@ -1,6 +1,6 @@
 ---
 name: write-tests
-description: Write or revise tests with high signal and clear intent. Use when Codex needs to add coverage, close a regression gap, review whether a proposed test is worth keeping, or reshape weak tests into short behavior-focused cases with `should*` names, realistic scenarios, and minimal noise.
+description: Write or revise tests with high signal and clear intent. Use when Codex needs to add coverage, close a regression gap, or reshape weak tests into short behavior-focused cases with `should*` names, realistic scenarios, and minimal noise.
 ---
 
 # Write Tests
@@ -34,7 +34,13 @@ Avoid tests that only prove:
 - A helper returns fields exactly as written in the fixture with no meaningful transformation.
 - A mocked path calls the same mock you just configured.
 - An internal temporary shape exists unless that shape is the public contract.
+- Private implementation details when the same behavior is observable through a public API or integration boundary.
 - A line of code ran, without asserting the behavior that matters.
+
+Use a direct internal seam only when it is complex or high-risk, its failure would
+represent a meaningful regression, and exercising it through the public boundary
+would be impractical or would obscure the failure. Do not expose a new API solely
+to make an internal test easier.
 
 When torn between two tests, keep the one that would be more useful in a real regression.
 

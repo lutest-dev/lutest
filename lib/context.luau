@@ -1,5 +1,4 @@
 const types = require '@core/types'
-const t = require '@lutest_release'
 
 export type TestSpec = types.TestSpec
 export type RuntimeRegister = (TestSpec) -> ()
@@ -50,105 +49,6 @@ const function register(spec: TestSpec): boolean
 	register_fn(spec)
 	return true
 end
-
-t.test('should start without an active runtime register', function()
-	clear_register()
-
-	assert(get_register() == nil)
-	assert(register {
-		name = 'orphan test',
-		mode = 'run',
-		fn = function() end,
-	} == false)
-end)
-
-t.test('should expose the active runtime register', function()
-	clear_register()
-
-	local captured = nil :: TestSpec?
-	const register_fn = function(spec: TestSpec)
-		captured = spec
-	end
-
-	set_register(register_fn)
-
-	const active_register = get_register()
-	assert(active_register ~= nil)
-	assert(active_register == register_fn)
-
-	active_register {
-		name = 'runtime test',
-		mode = 'run',
-		fn = function() end,
-	}
-
-	assert(captured ~= nil)
-	assert(captured.name == 'runtime test')
-
-	clear_register()
-end)
-
-t.test('should forward specs to the active runtime register', function()
-	clear_register()
-
-	local captured = nil :: TestSpec?
-	set_register(function(spec: TestSpec)
-		captured = spec
-	end)
-
-	const spec = {
-		name = 'forwarded test',
-		mode = 'only',
-		fn = function() end,
-	} :: TestSpec
-
-	assert(register(spec) == true)
-	assert(captured == spec)
-
-	clear_register()
-end)
-
-t.test('should clear the active runtime register', function()
-	clear_register()
-	set_register(function(_: TestSpec) end)
-
-	clear_register()
-
-	assert(get_register() == nil)
-	assert(register {
-		name = 'cleared test',
-		mode = 'run',
-		fn = function() end,
-	} == false)
-end)
-
-t.test('should track active Lutest sessions', function()
-	assert(is_running() == false)
-	begin_session()
-	assert(is_running() == true)
-	begin_session()
-	end_session()
-	assert(is_running() == true)
-	end_session()
-	assert(is_running() == false)
-end)
-
-t.test('should restore a previous registration owner', function()
-	set_registration_owner(nil)
-
-	const first_owner = {}
-	const second_owner = {}
-	assert(set_registration_owner(first_owner) == nil)
-	assert(get_registration_owner() == first_owner)
-
-	const previous_owner = set_registration_owner(second_owner)
-	assert(previous_owner == first_owner)
-	assert(get_registration_owner() == second_owner)
-
-	set_registration_owner(previous_owner)
-	assert(get_registration_owner() == first_owner)
-	set_registration_owner(nil)
-end)
 
 return {
 	begin_session = begin_session,

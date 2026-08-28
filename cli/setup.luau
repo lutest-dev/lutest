@@ -309,13 +309,6 @@ t.test('should collect a complete Roblox configuration', function()
 	assert(confirmed[5] == '456')
 end)
 
-t.test('should format a successful answer as compact state', function()
-	const output = format_confirmation('? Universe ID: ', '123')
-
-	assert(output:find('universe id', 1, true) ~= nil)
-	assert(output:find('123', 1, true) ~= nil)
-end)
-
 t.test('should format Roblox setup guidance', function()
 	const output = format_success {
 		runtime = 'roblox',

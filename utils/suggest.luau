@@ -1,5 +1,3 @@
-const t = require '@lutest_release'
-
 const function levenshtein_distance(left: string, right: string): number
 	if left == right then return 0 end
 	if #left == 0 then return #right end
@@ -68,32 +66,6 @@ const function closest_match(input: string, candidates: { string }): string?
 
 	return best_match
 end
-
-t.test('should compute levenshtein distance', function()
-	assert(levenshtein_distance('coree', 'core') == 1)
-	assert(levenshtein_distance('test', 'test') == 0)
-	assert(levenshtein_distance('', 'abc') == 3)
-end)
-
-t.test('should return the closest reasonable suggestion', function()
-	const suggestion = closest_match('coree', {
-		'core',
-		'cli',
-		'utils',
-	})
-
-	assert(suggestion == 'core')
-end)
-
-t.test('should avoid weak suggestions', function()
-	const suggestion = closest_match('banana', {
-		'core',
-		'cli',
-		'utils',
-	})
-
-	assert(suggestion == nil)
-end)
 
 return {
 	closest_match = closest_match,

@@ -276,9 +276,21 @@ t.test('should encode source files as a Lune bundle manifest', function()
 		{
 			absolute = 'C:/project/src/example.luau',
 			relative = 'src/example.luau',
+			source = 'return {}',
+			test_suite = true,
 		},
 	}
-	assert(output:find('src/example.luau', 1, true) ~= nil)
+	const object = json.asObject(json.deserialize(output))
+	assert(object ~= nil)
+	const entries = json.asArray((object :: json.Object).files)
+	assert(entries ~= nil)
+	assert(#(entries :: json.Array) == 1)
+	const entry = json.asObject((entries :: json.Array)[1])
+	assert(entry ~= nil)
+	assert((entry :: json.Object).absolute == 'C:/project/src/example.luau')
+	assert((entry :: json.Object).relative == 'src/example.luau')
+	assert((entry :: json.Object).source == 'return {}')
+	assert((entry :: json.Object).test_suite == true)
 end)
 
 t.test('should use mapped suite paths in the remote harness', function()

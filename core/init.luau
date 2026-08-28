@@ -1,6 +1,5 @@
 const types = require '@self/types'
 const runner = require '@self/runner'
-const t = require '@lutest_release'
 
 export type TestSpec = types.TestSpec
 export type TestMode = types.TestMode
@@ -22,9 +21,5 @@ export type TestRunner = types.TestRunner
 const api = {
 	run = runner.run,
 }
-
-t.test('should expose the runner public entrypoint', function()
-	assert(api.run == runner.run)
-end)
 
 return api

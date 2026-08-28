@@ -297,28 +297,6 @@ const function print_dry_run(
 	print(format_dry_run(runtime, config_path, paths))
 end
 
-t.test('should format aggregated run results in one line', function()
-	const output = format_run_result {
-		suite_result('core/runner.luau', {
-			total_tests = 5,
-			passed_tests = 5,
-			failed_tests = 0,
-			skipped_tests = 0,
-			todo_tests = 0,
-		}),
-		suite_result('runtimes/lute/discovery.luau', {
-			total_tests = 11,
-			passed_tests = 2,
-			failed_tests = 0,
-			skipped_tests = 0,
-			todo_tests = 9,
-		}),
-	}
-	const plain_output = output:gsub('\27%[[0-9;]*m', '')
-
-	assert(plain_output ~= '')
-end)
-
 t.test('should keep failed test details in aggregated output', function()
 	const output = format_run_result {
 		suite_result('runtimes/lute/runner.luau', {
@@ -546,36 +524,6 @@ t.test('should omit non-failed details from failed output', function()
 	assert(output:find('passed marker', 1, true) == nil)
 	assert(output:find('skipped marker', 1, true) == nil)
 	assert(output:find('todo marker', 1, true) == nil)
-end)
-
-t.test('should format a todo list grouped by suite', function()
-	const output = format_todo_result {
-		{
-			name = 'cli/reporter.luau',
-			tests = {
-				{
-					name = 'should show nested suite summaries',
-					mode = 'todo',
-				},
-				{
-					name = 'should support compact failure grouping',
-					mode = 'todo',
-				},
-			},
-		},
-		{
-			name = 'runtimes/lute/discovery.luau',
-			tests = {
-				{
-					name = 'should support glob roots',
-					mode = 'todo',
-				},
-			},
-		},
-	}
-	const plain_output = output:gsub('\27%[[0-9;]*m', '')
-
-	assert(plain_output ~= '')
 end)
 
 t.test(

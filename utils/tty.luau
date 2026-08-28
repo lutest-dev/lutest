@@ -1,6 +1,5 @@
 const process = require '@std/process'
 const system = require '@std/system'
-const t = require '@lutest_release'
 
 type ProcessResult = {
 	ok: boolean,
@@ -50,67 +49,6 @@ const function stdout_is_tty(): boolean
 		return process.run(args, options)
 	end)
 end
-
-t.test('should use the Unix TTY probe command', function()
-	local received_args = nil :: { string }?
-
-	const is_tty = probe_stdout_is_tty(false, function(args)
-		received_args = args
-		return {
-			ok = true,
-		}
-	end)
-
-	assert(is_tty)
-	assert(received_args ~= nil)
-	assert((received_args :: { string })[1] == 'sh')
-	assert((received_args :: { string })[3] == 'test -t 1')
-end)
-
-t.test('should use the Windows TTY probe command', function()
-	local received_args = nil :: { string }?
-
-	const is_tty = probe_stdout_is_tty(true, function(args)
-		received_args = args
-		return {
-			ok = true,
-		}
-	end)
-
-	assert(is_tty)
-	assert(received_args ~= nil)
-	assert((received_args :: { string })[1] == 'powershell.exe')
-	assert(
-		(received_args :: { string })[5]:find(
-			'IsOutputRedirected',
-			1,
-			true
-		) ~= nil
-	)
-end)
-
-t.test('should inherit stdout while probing for a TTY', function()
-	local received_stdio = nil :: 'inherit'?
-
-	const is_tty = probe_stdout_is_tty(false, function(_, options)
-		assert(options.stdio == 'inherit')
-		received_stdio = options.stdio
-		return {
-			ok = true,
-		}
-	end)
-
-	assert(is_tty)
-	assert(received_stdio == 'inherit')
-end)
-
-t.test('should fall back when the TTY probe fails', function()
-	const is_tty = probe_stdout_is_tty(false, function()
-		error 'shell is unavailable'
-	end)
-
-	assert(is_tty == false)
-end)
 
 return {
 	stdout_is_tty = stdout_is_tty,

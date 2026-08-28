@@ -52,10 +52,28 @@ const function load(cwd: string?): string
 	)
 end
 
-t.test('should parse a dotenv API key without exposing it', function()
-	const values =
-		parse_dotenv 'OTHER=value\nROBLOX_OPEN_CLOUD_API_KEY="secret"\n'
-	assert(values.ROBLOX_OPEN_CLOUD_API_KEY == 'secret')
+t.test('should find an API key from a project dotenv file', function()
+	const temp_cwd = path_utils.resolve_path(
+		path_utils.cwd(),
+		'dist/test-tmp/credentials-dotenv'
+	)
+	const dotenv_path = path.join(temp_cwd, '.env')
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+	fs.createDirectory(temp_cwd, { makeParents = true })
+	fs.writeStringToFile(
+		dotenv_path,
+		'OTHER=value\nROBLOX_OPEN_CLOUD_API_KEY="secret"\n'
+	)
+
+	const previous_environment_value = process.env[ENVIRONMENT_KEY]
+	process.env[ENVIRONMENT_KEY] = nil
+	const value = find(temp_cwd)
+	process.env[ENVIRONMENT_KEY] = previous_environment_value
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+	assert(value == 'secret')
 end)
 
 return {

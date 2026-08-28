@@ -393,18 +393,25 @@ end
 const function raise_missing_path(
 	input: DiscoveryInput,
 	cwd: string,
-	config_filepath: string?
+	config_filepath: string?,
+	discovery_kind: 'test' | 'all'
 ): never
 	const has_glob = glob.has_magic(input.path)
 	const suggestion = if has_glob
 		then nil
 		else find_path_suggestion(input.path, cwd)
+	const missing_glob_message = if discovery_kind == 'test'
+		then 'No test files matched the glob'
+		else 'No files matched the glob'
+	const missing_path_how_to_fix = if discovery_kind == 'test'
+		then 'Use a test file or directory that exists.'
+		else 'Use a file or directory that exists.'
 
 	if input.source == 'cli' then
 		error(
 			errors.usage_error(
 				if has_glob
-					then 'No test files matched the glob'
+					then missing_glob_message
 					else 'Test path not found',
 				{
 					where = input.path,
@@ -412,7 +419,7 @@ const function raise_missing_path(
 							== nil
 						then nil
 						else `'{suggestion}'`,
-					how_to_fix = 'Use a test file or directory that exists.',
+					how_to_fix = missing_path_how_to_fix,
 				}
 			),
 			0
@@ -495,7 +502,7 @@ const function discover_path(
 	if glob.has_magic(input.path) then
 		const matches = glob.expand(input.path, cwd)
 		if #matches == 0 then
-			raise_missing_path(input, cwd, config_filepath)
+			raise_missing_path(input, cwd, config_filepath, 'test')
 		end
 
 		for _, match in matches do
@@ -513,7 +520,7 @@ const function discover_path(
 
 	const resolved_path = resolve_input_path(input.path, cwd)
 	if not fs.exists(resolved_path) then
-		raise_missing_path(input, cwd, config_filepath)
+		raise_missing_path(input, cwd, config_filepath, 'test')
 	end
 
 	ingest_path(
@@ -619,6 +626,36 @@ const function walk_all_luau_files(
 	end
 end
 
+const function ingest_all_path(
+	results: { string },
+	seen: SeenMap,
+	resolved_path: string,
+	cwd: string,
+	gitignore_rules: GitignoreRules,
+	project_config: LutestConfig
+)
+	if is_readable_file_link(fs.type(resolved_path), resolved_path) then
+		add_luau_file(
+			results,
+			seen,
+			resolved_path,
+			cwd,
+			gitignore_rules,
+			project_config
+		)
+		return
+	end
+
+	walk_all_luau_files(
+		results,
+		seen,
+		resolved_path,
+		cwd,
+		gitignore_rules,
+		project_config
+	)
+end
+
 const function discover_all_files(
 	paths: { string },
 	project_config: LutestConfig,
@@ -634,6 +671,30 @@ const function discover_all_files(
 		const input_directory = if input.source == 'config'
 			then config_directory
 			else path_utils.cwd()
+		if glob.has_magic(input.path) then
+			const matches = glob.expand(input.path, input_directory)
+			if #matches == 0 then
+				raise_missing_path(
+					input,
+					input_directory,
+					resolved_config_path,
+					'all'
+				)
+			end
+
+			for _, resolved_path in matches do
+				ingest_all_path(
+					discovered,
+					seen,
+					resolved_path,
+					input_directory,
+					gitignore_rules,
+					project_config
+				)
+			end
+			continue
+		end
+
 		const resolved_path =
 			resolve_input_path(input.path, input_directory)
 		if not fs.exists(resolved_path) then
@@ -648,30 +709,14 @@ const function discover_all_files(
 				0
 			)
 		end
-		if
-			is_readable_file_link(
-				fs.type(resolved_path),
-				resolved_path
-			)
-		then
-			add_luau_file(
-				discovered,
-				seen,
-				resolved_path,
-				input_directory,
-				gitignore_rules,
-				project_config
-			)
-		else
-			walk_all_luau_files(
-				discovered,
-				seen,
-				resolved_path,
-				input_directory,
-				gitignore_rules,
-				project_config
-			)
-		end
+		ingest_all_path(
+			discovered,
+			seen,
+			resolved_path,
+			input_directory,
+			gitignore_rules,
+			project_config
+		)
 	end
 
 	table.sort(discovered)
@@ -1696,6 +1741,51 @@ t.test('should raise a usage error for an unmatched glob path', function()
 	message = errors.strip_ansi(errors.display_error(message))
 	assert(message:find('No test files matched the glob', 1, true) ~= nil)
 	assert(message:find('> suites/*.luau', 1, true) ~= nil)
+
+	fs.removeDirectory(temp_cwd, { recursive = true })
+end)
+
+t.test('should discover all Luau files through a glob input path', function()
+	const temp_cwd = path_utils.resolve_path(
+		path_utils.cwd(),
+		'dist/test-tmp/discovery-all-glob-input'
+	)
+	const top_level_module = path_utils.normalize_path(
+		path.join(temp_cwd, 'suites', 'inventory.luau')
+	)
+	const nested_module = path_utils.normalize_path(
+		path.join(temp_cwd, 'suites', 'nested', 'combat.luau')
+	)
+	const wrong_extension = path_utils.normalize_path(
+		path.join(temp_cwd, 'suites', 'notes.txt')
+	)
+
+	if fs.exists(temp_cwd) then
+		fs.removeDirectory(temp_cwd, { recursive = true })
+	end
+
+	fs.createDirectory(
+		path.join(temp_cwd, 'suites', 'nested'),
+		{ makeParents = true }
+	)
+	fs.writeStringToFile(top_level_module, 'return {}')
+	fs.writeStringToFile(nested_module, 'return {}')
+	fs.writeStringToFile(wrong_extension, 'not a Luau file')
+
+	const discovered = discover_all_files({
+		path_utils.normalize_path(
+			path.join(temp_cwd, 'suites', '**', '*.luau')
+		),
+	}, {
+		roots = { '.' },
+		ignore = {},
+		require = '@lutest_release',
+		gitignore = false,
+	}, nil)
+
+	assert(#discovered == 2)
+	assert(discovered[1] == top_level_module)
+	assert(discovered[2] == nested_module)
 
 	fs.removeDirectory(temp_cwd, { recursive = true })
 end)
